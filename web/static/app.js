@@ -12,6 +12,7 @@ const appFeedback = document.querySelector("#app-feedback");
 const brokerTitle = document.querySelector("#broker-title");
 const payloadViewer = document.querySelector("#payload-viewer");
 const payloadMeta = document.querySelector("#payload-meta");
+const payloadEmpty = document.querySelector("#payload-empty");
 const historyMeta = document.querySelector("#history-meta");
 
 const socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/ws`);
@@ -264,14 +265,37 @@ const createMessageCard = (message) => {
 
 const renderPayload = (message) => {
   if (!message) {
-    payloadMeta.textContent = "Select a message from history";
-    payloadViewer.textContent = "No payload selected";
+    payloadMeta.hidden = true;
+    payloadEmpty.hidden = false;
+    payloadViewer.hidden = true;
+    payloadViewer.textContent = "";
     return;
   }
 
-  payloadMeta.textContent =
-    `${message.topic} · ${new Date(message.receivedAt).toLocaleString()} · QoS ${message.qos}${message.retain ? " · retained" : ""}`;
+  const payloadSize = new Blob([message.payload || ""]).size;
+
+  payloadMeta.hidden = false;
+  payloadEmpty.hidden = true;
+  payloadViewer.hidden = false;
+  payloadMeta.replaceChildren(
+    createMetaItem("Topic", message.topic),
+    createMetaItem("Received", new Date(message.receivedAt).toLocaleString()),
+    createMetaItem("QoS", String(message.qos)),
+    createMetaItem("Retain", message.retain ? "Yes" : "No"),
+    createMetaItem("Payload", `${payloadSize} B`)
+  );
   payloadViewer.textContent = message.payload || "(empty payload)";
+};
+
+const createMetaItem = (label, value) => {
+  const item = document.createElement("span");
+  const labelElement = document.createElement("strong");
+  const valueElement = document.createElement("span");
+
+  labelElement.textContent = label;
+  valueElement.textContent = value;
+  item.append(labelElement, valueElement);
+  return item;
 };
 
 const addBrokerMessage = ({ topic, payload, qos, retain, receivedAt }) => {

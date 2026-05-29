@@ -62,12 +62,13 @@
 
         <section class="panel payload-panel" aria-labelledby="payload-title">
           <div class="panel-heading payload-heading">
-            <div>
-              <h2 id="payload-title">Payload</h2>
-              <p id="payload-meta" class="payload-meta">Select a message from history</p>
-            </div>
+            <h2 id="payload-title">Payload</h2>
           </div>
-          <pre id="payload-viewer" class="payload-viewer">No payload selected</pre>
+          <div id="payload-meta" class="payload-meta" hidden></div>
+          <div id="payload-empty" class="payload-empty">
+            Select a message in Messages on the right
+          </div>
+          <pre id="payload-viewer" class="payload-viewer" hidden></pre>
         </section>
 
         <aside class="panel history-panel" aria-labelledby="messages-title">
