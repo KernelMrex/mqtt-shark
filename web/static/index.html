@@ -8,96 +8,81 @@
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
-    <header class="topbar">
-      <div>
-        <h1>MQTT Shark</h1>
-        <p>Minimal MQTT explorer <span id="app-version" class="app-version">dev</span></p>
-      </div>
-      <span id="status" class="status status-idle">idle</span>
-    </header>
-
-    <main class="layout">
-      <section class="panel connection-panel" aria-labelledby="connection-title">
-        <h2 id="connection-title">Connection</h2>
-        <form id="connection-form" class="grid-form">
-          <label>
-            Broker URL
-            <input id="broker-url" name="url" placeholder="mqtt://localhost:1883" required>
-          </label>
-          <label>
-            Client ID
-            <input id="client-id" name="clientId" placeholder="mqtt-shark">
-          </label>
-          <label>
-            Username
-            <input id="username" name="username" autocomplete="username">
-          </label>
-          <label>
-            Password
-            <input id="password" name="password" type="password" autocomplete="current-password">
-          </label>
-          <label class="checkbox-row">
-            <input id="clean" name="clean" type="checkbox" checked>
-            Clean session
-          </label>
-          <div class="button-row">
-            <button type="submit">Connect</button>
-            <button id="disconnect" type="button" class="secondary">Disconnect</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="panel" aria-labelledby="subscribe-title">
-        <h2 id="subscribe-title">Subscribe</h2>
-        <form id="subscribe-form" class="inline-form">
-          <input id="subscribe-topic" placeholder="sensors/#" required>
-          <select id="subscribe-qos" aria-label="Subscribe QoS">
-            <option value="0">QoS 0</option>
-            <option value="1">QoS 1</option>
-            <option value="2">QoS 2</option>
-          </select>
-          <button type="submit">Subscribe</button>
-        </form>
-        <ul id="subscriptions" class="subscriptions"></ul>
-      </section>
-
-      <section class="panel publish-panel" aria-labelledby="publish-title">
-        <h2 id="publish-title">Publish</h2>
-        <form id="publish-form" class="grid-form">
-          <label>
-            Topic
-            <input id="publish-topic" placeholder="sensors/demo" required>
-          </label>
-          <label>
-            QoS
-            <select id="publish-qos">
-              <option value="0">QoS 0</option>
-              <option value="1">QoS 1</option>
-              <option value="2">QoS 2</option>
-            </select>
-          </label>
-          <label class="checkbox-row">
-            <input id="retain" type="checkbox">
-            Retain
-          </label>
-          <label class="wide">
-            Payload
-            <textarea id="payload" rows="6" placeholder='{"hello":"mqtt"}'></textarea>
-          </label>
-          <div class="button-row">
-            <button type="submit">Publish</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="panel messages-panel" aria-labelledby="messages-title">
-        <div class="panel-heading">
-          <h2 id="messages-title">Messages</h2>
-          <button id="clear-messages" type="button" class="secondary">Clear</button>
+    <main id="connect-screen" class="connect-screen">
+      <section class="connect-card" aria-labelledby="connection-title">
+        <div class="connect-brand">
+          <h1 id="connection-title">MQTT Shark</h1>
+          <span id="app-version" class="app-version">dev</span>
         </div>
-        <div id="messages" class="messages" aria-live="polite"></div>
+        <form id="connection-form" class="connect-form">
+          <label>
+            Host-name
+            <input id="broker-host" name="host" placeholder="localhost" autocomplete="hostname" required autofocus>
+          </label>
+          <label>
+            Port
+            <input id="broker-port" name="port" type="number" min="1" max="65535" value="1883" inputmode="numeric" required>
+          </label>
+          <button id="connect-button" type="submit">Connect</button>
+          <p id="connect-feedback" class="feedback" role="status"></p>
+        </form>
       </section>
     </main>
+
+    <div id="app-shell" class="app-shell" hidden>
+      <header class="topbar">
+        <div class="broker-heading">
+          <span class="eyebrow">Broker</span>
+          <h1 id="broker-title">MQTT Shark</h1>
+        </div>
+        <div class="topbar-actions">
+          <span id="status" class="status status-idle">idle</span>
+          <button id="disconnect" type="button" class="secondary">Disconnect</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="panel topics-panel" aria-labelledby="topics-title">
+          <div class="panel-heading">
+            <h2 id="topics-title">Topics</h2>
+          </div>
+          <form id="subscribe-form" class="subscribe-form">
+            <input id="subscribe-topic" placeholder="sensors/#" required>
+            <div class="subscribe-actions">
+              <select id="subscribe-qos" aria-label="Subscribe QoS">
+                <option value="0">QoS 0</option>
+                <option value="1">QoS 1</option>
+                <option value="2">QoS 2</option>
+              </select>
+              <button type="submit">Subscribe</button>
+            </div>
+          </form>
+          <ul id="topics-list" class="topics-list"></ul>
+        </aside>
+
+        <section class="panel payload-panel" aria-labelledby="payload-title">
+          <div class="panel-heading payload-heading">
+            <div>
+              <h2 id="payload-title">Payload</h2>
+              <p id="payload-meta" class="payload-meta">Select a message from history</p>
+            </div>
+          </div>
+          <pre id="payload-viewer" class="payload-viewer">No payload selected</pre>
+        </section>
+
+        <aside class="panel history-panel" aria-labelledby="messages-title">
+          <div class="panel-heading">
+            <div>
+              <h2 id="messages-title">Messages</h2>
+              <p id="history-meta" class="history-meta">Last 20 messages</p>
+            </div>
+            <button id="clear-messages" type="button" class="secondary compact">Clear</button>
+          </div>
+          <p id="app-feedback" class="feedback app-feedback" role="status"></p>
+          <div id="messages" class="messages" aria-live="polite"></div>
+        </aside>
+      </main>
+    </div>
 
     <script src="/app.js" type="module"></script>
   </body>

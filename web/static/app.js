@@ -1,13 +1,33 @@
+const connectScreen = document.querySelector("#connect-screen");
+const appShell = document.querySelector("#app-shell");
 const statusElement = document.querySelector("#status");
 const messagesElement = document.querySelector("#messages");
-const subscriptionsElement = document.querySelector("#subscriptions");
+const topicsListElement = document.querySelector("#topics-list");
 const connectionForm = document.querySelector("#connection-form");
 const subscribeForm = document.querySelector("#subscribe-form");
-const publishForm = document.querySelector("#publish-form");
 const appVersionElement = document.querySelector("#app-version");
+const connectButton = document.querySelector("#connect-button");
+const connectFeedback = document.querySelector("#connect-feedback");
+const appFeedback = document.querySelector("#app-feedback");
+const brokerTitle = document.querySelector("#broker-title");
+const payloadViewer = document.querySelector("#payload-viewer");
+const payloadMeta = document.querySelector("#payload-meta");
+const historyMeta = document.querySelector("#history-meta");
 
 const socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/ws`);
-const subscriptions = new Set();
+
+const state = {
+  connected: false,
+  broker: null,
+  pendingBroker: null,
+  activeTopic: "all",
+  selectedMessageId: null,
+  subscriptions: new Set(),
+  messages: []
+};
+
+const maxHistory = 500;
+const visibleMessages = 20;
 
 const loadAppInfo = async () => {
   try {
@@ -25,73 +45,272 @@ const loadAppInfo = async () => {
 
 const send = (message) => {
   if (socket.readyState !== WebSocket.OPEN) {
-    addSystemMessage("WebSocket is not connected");
+    showConnectFeedback("WebSocket is not connected", true);
     return;
   }
 
   socket.send(JSON.stringify(message));
 };
 
+const showConnectFeedback = (message, isError = false) => {
+  connectFeedback.textContent = message;
+  connectFeedback.classList.toggle("feedback-error", isError);
+};
+
+const showAppFeedback = (message, isError = false) => {
+  appFeedback.textContent = message;
+  appFeedback.classList.toggle("feedback-error", isError);
+};
+
 const setStatus = (status) => {
   statusElement.textContent = status;
   statusElement.className = `status status-${status}`;
-};
 
-const addSystemMessage = (message) => {
-  const item = document.createElement("article");
-  item.className = "message";
-  item.innerHTML = `
-    <div class="message-meta">
-      <span class="message-topic">system</span>
-      <span>${new Date().toLocaleTimeString()}</span>
-    </div>
-    <pre></pre>
-  `;
-  item.querySelector("pre").textContent = message;
-  messagesElement.prepend(item);
-};
+  if (status === "connecting") {
+    connectButton.disabled = true;
+    showConnectFeedback("Connecting...");
+    return;
+  }
 
-const addBrokerMessage = ({ topic, payload, qos, retain, receivedAt }) => {
-  const item = document.createElement("article");
-  item.className = "message";
-  item.innerHTML = `
-    <div class="message-meta">
-      <span class="message-topic"></span>
-      <span></span>
-    </div>
-    <pre></pre>
-  `;
-  item.querySelector(".message-topic").textContent = topic;
-  item.querySelector(".message-meta span:last-child").textContent =
-    `${new Date(receivedAt).toLocaleTimeString()} · QoS ${qos}${retain ? " · retained" : ""}`;
-  item.querySelector("pre").textContent = payload;
-  messagesElement.prepend(item);
-};
+  connectButton.disabled = false;
 
-const renderSubscriptions = () => {
-  subscriptionsElement.replaceChildren();
+  if (status === "connected") {
+    openBrokerPanel();
+    return;
+  }
 
-  for (const topic of subscriptions) {
-    const item = document.createElement("li");
-    const label = document.createElement("span");
-    const button = document.createElement("button");
-
-    label.textContent = topic;
-    button.type = "button";
-    button.textContent = "×";
-    button.title = `Unsubscribe from ${topic}`;
-    button.addEventListener("click", () => send({ type: "unsubscribe", topic }));
-
-    item.append(label, button);
-    subscriptionsElement.append(item);
+  if (status === "disconnected" && state.connected) {
+    closeBrokerPanel("Disconnected from broker");
   }
 };
 
+const brokerURLFromForm = (form) => {
+  const host = String(form.get("host") || "").trim();
+  const port = String(form.get("port") || "1883").trim();
+  const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(host);
+  const url = hasScheme ? host : `mqtt://${host}:${port}`;
+
+  return { host, port, url };
+};
+
+const resetSession = () => {
+  state.activeTopic = "all";
+  state.selectedMessageId = null;
+  state.subscriptions.clear();
+  state.messages = [];
+  renderTopics();
+  renderMessages();
+  renderPayload(null);
+};
+
+const openBrokerPanel = () => {
+  state.connected = true;
+  state.broker = state.pendingBroker;
+  state.pendingBroker = null;
+
+  brokerTitle.textContent = `${state.broker.host}:${state.broker.port}`;
+  connectScreen.hidden = true;
+  appShell.hidden = false;
+  showConnectFeedback("");
+  showAppFeedback("");
+};
+
+const closeBrokerPanel = (message = "") => {
+  state.connected = false;
+  state.broker = null;
+  state.pendingBroker = null;
+  resetSession();
+  appShell.hidden = true;
+  connectScreen.hidden = false;
+  showConnectFeedback(message, Boolean(message));
+};
+
+const messagesForActiveTopic = () => {
+  if (state.activeTopic === "all") {
+    return state.messages;
+  }
+
+  return state.messages.filter((message) => message.topic === state.activeTopic);
+};
+
+const getKnownTopics = () => {
+  const topics = new Map();
+
+  for (const topic of state.subscriptions) {
+    topics.set(topic, { topic, count: 0, subscribed: true });
+  }
+
+  for (const message of state.messages) {
+    const existing = topics.get(message.topic) || {
+      topic: message.topic,
+      count: 0,
+      subscribed: state.subscriptions.has(message.topic)
+    };
+    existing.count += 1;
+    topics.set(message.topic, existing);
+  }
+
+  return [...topics.values()].sort((left, right) => left.topic.localeCompare(right.topic));
+};
+
+const renderTopics = () => {
+  topicsListElement.replaceChildren();
+
+  const allItem = createTopicItem({
+    topic: "all",
+    label: "All topics",
+    count: state.messages.length,
+    subscribed: false
+  });
+  topicsListElement.append(allItem);
+
+  for (const topic of getKnownTopics()) {
+    topicsListElement.append(createTopicItem(topic));
+  }
+};
+
+const createTopicItem = ({ topic, label = topic, count, subscribed }) => {
+  const item = document.createElement("li");
+  const button = document.createElement("button");
+  const name = document.createElement("span");
+  const meta = document.createElement("span");
+
+  button.type = "button";
+  button.className = "topic-button";
+  button.classList.toggle("is-active", state.activeTopic === topic);
+  button.addEventListener("click", () => {
+    state.activeTopic = topic;
+    const latest = messagesForActiveTopic()[0] || null;
+    state.selectedMessageId = latest?.id || null;
+    renderTopics();
+    renderMessages();
+    renderPayload(latest);
+  });
+
+  name.className = "topic-name";
+  name.textContent = label;
+  meta.className = "topic-meta";
+  meta.textContent = subscribed ? `${count} msg · subscribed` : `${count} msg`;
+
+  button.append(name, meta);
+
+  if (topic !== "all" && subscribed) {
+    const unsubscribe = document.createElement("button");
+    unsubscribe.type = "button";
+    unsubscribe.className = "topic-remove";
+    unsubscribe.textContent = "×";
+    unsubscribe.title = `Unsubscribe from ${topic}`;
+    unsubscribe.addEventListener("click", (event) => {
+      event.stopPropagation();
+      send({ type: "unsubscribe", topic });
+    });
+    button.append(unsubscribe);
+  }
+
+  item.append(button);
+  return item;
+};
+
+const renderMessages = () => {
+  messagesElement.replaceChildren();
+
+  const messages = messagesForActiveTopic().slice(0, visibleMessages);
+  const visibleCount = messages.length;
+  historyMeta.textContent = `${visibleCount} of latest ${visibleMessages} shown`;
+
+  if (messages.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No messages yet";
+    messagesElement.append(empty);
+    return;
+  }
+
+  for (const message of messages) {
+    messagesElement.append(createMessageCard(message));
+  }
+};
+
+const createMessageCard = (message) => {
+  const item = document.createElement("article");
+  const button = document.createElement("button");
+  const meta = document.createElement("div");
+  const topic = document.createElement("span");
+  const time = document.createElement("span");
+  const preview = document.createElement("p");
+
+  item.className = "message-card";
+  button.type = "button";
+  button.className = "message-button";
+  button.classList.toggle("is-active", message.id === state.selectedMessageId);
+  button.addEventListener("click", () => {
+    state.selectedMessageId = message.id;
+    renderMessages();
+    renderPayload(message);
+  });
+
+  meta.className = "message-meta";
+  topic.className = "message-topic";
+  topic.textContent = message.topic;
+  time.textContent = `${new Date(message.receivedAt).toLocaleTimeString()} · QoS ${message.qos}${message.retain ? " · retained" : ""}`;
+  preview.className = "message-preview";
+  preview.textContent = message.payload || "(empty payload)";
+
+  meta.append(topic, time);
+  button.append(meta, preview);
+  item.append(button);
+  return item;
+};
+
+const renderPayload = (message) => {
+  if (!message) {
+    payloadMeta.textContent = "Select a message from history";
+    payloadViewer.textContent = "No payload selected";
+    return;
+  }
+
+  payloadMeta.textContent =
+    `${message.topic} · ${new Date(message.receivedAt).toLocaleString()} · QoS ${message.qos}${message.retain ? " · retained" : ""}`;
+  payloadViewer.textContent = message.payload || "(empty payload)";
+};
+
+const addBrokerMessage = ({ topic, payload, qos, retain, receivedAt }) => {
+  const message = {
+    id: crypto.randomUUID(),
+    topic,
+    payload,
+    qos,
+    retain,
+    receivedAt
+  };
+
+  state.messages.unshift(message);
+  state.messages = state.messages.slice(0, maxHistory);
+
+  const shouldSelect = !state.selectedMessageId || state.activeTopic === topic || state.activeTopic === "all";
+  if (shouldSelect) {
+    state.selectedMessageId = message.id;
+    renderPayload(message);
+  }
+
+  renderTopics();
+  renderMessages();
+};
+
 socket.addEventListener("open", () => setStatus("idle"));
-socket.addEventListener("close", () => setStatus("disconnected"));
+socket.addEventListener("close", () => {
+  setStatus("disconnected");
+  if (!state.connected) {
+    showConnectFeedback("WebSocket disconnected", true);
+  }
+});
 socket.addEventListener("error", () => {
   setStatus("error");
-  addSystemMessage("WebSocket error");
+  if (state.connected) {
+    showAppFeedback("WebSocket error", true);
+  } else {
+    showConnectFeedback("WebSocket error", true);
+  }
 });
 
 socket.addEventListener("message", (event) => {
@@ -104,73 +323,77 @@ socket.addEventListener("message", (event) => {
 
   if (message.type === "error") {
     setStatus("error");
-    addSystemMessage(message.message);
+    if (state.connected) {
+      showAppFeedback(message.message, true);
+    } else {
+      showConnectFeedback(message.message, true);
+    }
     return;
   }
 
   if (message.type === "message") {
+    showAppFeedback("");
     addBrokerMessage(message);
     return;
   }
 
   if (message.type === "subscription") {
     if (message.subscribed) {
-      subscriptions.add(message.topic);
+      state.subscriptions.add(message.topic);
+      state.activeTopic = message.topic;
+      showAppFeedback(`Subscribed to ${message.topic}`);
     } else {
-      subscriptions.delete(message.topic);
+      state.subscriptions.delete(message.topic);
+      if (state.activeTopic === message.topic) {
+        state.activeTopic = "all";
+      }
+      showAppFeedback(`Unsubscribed from ${message.topic}`);
     }
 
-    renderSubscriptions();
-    return;
-  }
-
-  if (message.type === "published") {
-    addSystemMessage(`Published to ${message.topic}`);
+    renderTopics();
+    renderMessages();
   }
 });
 
 connectionForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const form = new FormData(connectionForm);
+  const broker = brokerURLFromForm(form);
 
+  resetSession();
+  state.pendingBroker = broker;
   send({
     type: "connect",
-    url: form.get("url"),
-    clientId: form.get("clientId"),
-    username: form.get("username"),
-    password: form.get("password"),
-    clean: form.get("clean") === "on"
+    url: broker.url,
+    clean: true
   });
 });
 
 document.querySelector("#disconnect").addEventListener("click", () => {
-  subscriptions.clear();
-  renderSubscriptions();
   send({ type: "disconnect" });
 });
 
 subscribeForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  const topicInput = document.querySelector("#subscribe-topic");
+
   send({
     type: "subscribe",
-    topic: document.querySelector("#subscribe-topic").value,
+    topic: topicInput.value,
     qos: Number(document.querySelector("#subscribe-qos").value)
   });
-});
 
-publishForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  send({
-    type: "publish",
-    topic: document.querySelector("#publish-topic").value,
-    payload: document.querySelector("#payload").value,
-    qos: Number(document.querySelector("#publish-qos").value),
-    retain: document.querySelector("#retain").checked
-  });
+  topicInput.value = "";
 });
 
 document.querySelector("#clear-messages").addEventListener("click", () => {
-  messagesElement.replaceChildren();
+  state.messages = [];
+  state.selectedMessageId = null;
+  renderTopics();
+  renderMessages();
+  renderPayload(null);
 });
 
+renderTopics();
+renderMessages();
 loadAppInfo();
