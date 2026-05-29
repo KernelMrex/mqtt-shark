@@ -15,6 +15,7 @@ MQTT Shark is a small open source MQTT explorer. The MVP runs as a single Docker
 - Go backend: `net/http`, embedded static files, WebSocket bridge.
 - MQTT client: Eclipse Paho MQTT.
 - Frontend: plain HTML, CSS, and browser JavaScript with no build step.
+- Docker builds: Buildx with Zig cc for CGO-ready Linux binaries.
 
 ## Run Locally
 

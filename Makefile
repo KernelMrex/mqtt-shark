@@ -2,10 +2,13 @@ APP_NAME := mqtt-shark
 override APP_VERSION := $(shell git describe --tags --exact-match HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo dev)
 PORT ?= 8080
 CONTAINER_NAME ?= $(APP_NAME)
+CGO_ENABLED ?= 1
 
 GO ?= go
 DOCKER ?= docker
 DOCKER_IMAGE ?= $(APP_NAME):$(APP_VERSION)
+DOCKER_PLATFORM ?= linux/$(shell $(GO) env GOARCH)
+DOCKER_BUILD_OUTPUT ?= --load
 
 LDFLAGS := -s -w -X main.AppVersion=$(APP_VERSION)
 
@@ -28,7 +31,7 @@ run:
 	$(GO) run -ldflags "$(LDFLAGS)" ./cmd/$(APP_NAME)
 
 build:
-	CGO_ENABLED=0 $(GO) build -trimpath -ldflags "$(LDFLAGS)" -o ./bin/$(APP_NAME) ./cmd/$(APP_NAME)
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) build -trimpath -ldflags "$(LDFLAGS)" -o ./bin/$(APP_NAME) ./cmd/$(APP_NAME)
 
 test:
 	$(GO) test ./...
@@ -37,7 +40,12 @@ check: test
 	node --check web/static/app.js
 
 docker-build:
-	$(DOCKER) build --build-arg APP_VERSION=$(APP_VERSION) -t $(DOCKER_IMAGE) .
+	$(DOCKER) buildx build \
+		--platform $(DOCKER_PLATFORM) \
+		$(DOCKER_BUILD_OUTPUT) \
+		--build-arg APP_VERSION=$(APP_VERSION) \
+		-t $(DOCKER_IMAGE) \
+		.
 
 up: docker-build
 	@$(DOCKER) rm -f $(CONTAINER_NAME) >/dev/null 2>&1 || true
