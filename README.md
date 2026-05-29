@@ -2,6 +2,8 @@
 
 MQTT Shark is a small open source MQTT explorer. The MVP runs as a single Docker image with a Go backend and a lightweight static frontend.
 
+See [ROADMAP.md](ROADMAP.md) for planned work.
+
 ## MVP
 
 - Connect to MQTT brokers through `mqtt://`, `mqtts://`, `ws://`, or `wss://`.
