@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MQTT Shark</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>MQTT Shark</h1>
+        <p>Minimal MQTT explorer</p>
+      </div>
+      <span id="status" class="status status-idle">idle</span>
+    </header>
+
+    <main class="layout">
+      <section class="panel connection-panel" aria-labelledby="connection-title">
+        <h2 id="connection-title">Connection</h2>
+        <form id="connection-form" class="grid-form">
+          <label>
+            Broker URL
+            <input id="broker-url" name="url" placeholder="mqtt://localhost:1883" required>
+          </label>
+          <label>
+            Client ID
+            <input id="client-id" name="clientId" placeholder="mqtt-shark">
+          </label>
+          <label>
+            Username
+            <input id="username" name="username" autocomplete="username">
+          </label>
+          <label>
+            Password
+            <input id="password" name="password" type="password" autocomplete="current-password">
+          </label>
+          <label class="checkbox-row">
+            <input id="clean" name="clean" type="checkbox" checked>
+            Clean session
+          </label>
+          <div class="button-row">
+            <button type="submit">Connect</button>
+            <button id="disconnect" type="button" class="secondary">Disconnect</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="subscribe-title">
+        <h2 id="subscribe-title">Subscribe</h2>
+        <form id="subscribe-form" class="inline-form">
+          <input id="subscribe-topic" placeholder="sensors/#" required>
+          <select id="subscribe-qos" aria-label="Subscribe QoS">
+            <option value="0">QoS 0</option>
+            <option value="1">QoS 1</option>
+            <option value="2">QoS 2</option>
+          </select>
+          <button type="submit">Subscribe</button>
+        </form>
+        <ul id="subscriptions" class="subscriptions"></ul>
+      </section>
+
+      <section class="panel publish-panel" aria-labelledby="publish-title">
+        <h2 id="publish-title">Publish</h2>
+        <form id="publish-form" class="grid-form">
+          <label>
+            Topic
+            <input id="publish-topic" placeholder="sensors/demo" required>
+          </label>
+          <label>
+            QoS
+            <select id="publish-qos">
+              <option value="0">QoS 0</option>
+              <option value="1">QoS 1</option>
+              <option value="2">QoS 2</option>
+            </select>
+          </label>
+          <label class="checkbox-row">
+            <input id="retain" type="checkbox">
+            Retain
+          </label>
+          <label class="wide">
+            Payload
+            <textarea id="payload" rows="6" placeholder='{"hello":"mqtt"}'></textarea>
+          </label>
+          <div class="button-row">
+            <button type="submit">Publish</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel messages-panel" aria-labelledby="messages-title">
+        <div class="panel-heading">
+          <h2 id="messages-title">Messages</h2>
+          <button id="clear-messages" type="button" class="secondary">Clear</button>
+        </div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

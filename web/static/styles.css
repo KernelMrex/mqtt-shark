@@ -1,0 +1,265 @@
+å:root {
+  color-scheme: light dark;
+  --bg: #101418;
+  --panel: #171d23;
+  --panel-soft: #202832;
+  --text: #f3f7fb;
+  --muted: #9aa7b5;
+  --line: #303945;
+  --accent: #29c7ac;
+  --accent-strong: #1da78f;
+  --danger: #ff6b6b;
+  --radius: 8px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  min-height: 40px;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 0 16px;
+  background: var(--accent);
+  color: #06110f;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:hover {
+  background: var(--accent-strong);
+}
+
+button.secondary {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: #0d1116;
+  color: var(--text);
+}
+
+textarea {
+  resize: vertical;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px clamp(16px, 3vw, 32px);
+  border-bottom: 1px solid var(--line);
+  background: #0d1116;
+}
+
+.topbar h1,
+.topbar p,
+.panel h2 {
+  margin: 0;
+}
+
+.topbar h1 {
+  font-size: 24px;
+}
+
+.topbar p {
+  color: var(--muted);
+}
+
+.status {
+  min-width: 116px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 12px;
+  text-align: center;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.status-connected {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.status-error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: var(--panel);
+}
+
+.connection-panel {
+  grid-row: span 2;
+}
+
+.messages-panel {
+  min-height: 460px;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.grid-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.grid-form label,
+.inline-form {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.grid-form input,
+.grid-form select,
+.grid-form textarea {
+  margin-top: 6px;
+}
+
+.wide,
+.button-row {
+  grid-column: 1 / -1;
+}
+
+.button-row,
+.inline-form {
+  display: flex;
+  gap: 10px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-row input {
+  width: auto;
+  margin: 0;
+}
+
+.subscriptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0;
+  margin: 14px 0 0;
+  list-style: none;
+}
+
+.subscriptions li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 8px 6px 12px;
+  background: var(--panel-soft);
+}
+
+.subscriptions button {
+  width: 26px;
+  min-height: 26px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.messages {
+  display: grid;
+  gap: 10px;
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.message {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: #0d1116;
+}
+
+.message-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.message-topic {
+  color: var(--accent);
+  font-weight: 800;
+  word-break: break-all;
+}
+
+.message pre {
+  overflow: auto;
+  margin: 10px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-form {
+    grid-template-columns: 1fr;
+  }
+
+  .button-row,
+  .inline-form,
+  .topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
