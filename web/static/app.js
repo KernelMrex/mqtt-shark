@@ -4,9 +4,24 @@ const subscriptionsElement = document.querySelector("#subscriptions");
 const connectionForm = document.querySelector("#connection-form");
 const subscribeForm = document.querySelector("#subscribe-form");
 const publishForm = document.querySelector("#publish-form");
+const appVersionElement = document.querySelector("#app-version");
 
 const socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/ws`);
 const subscriptions = new Set();
+
+const loadAppInfo = async () => {
+  try {
+    const response = await fetch("/api/info");
+    if (!response.ok) {
+      return;
+    }
+
+    const info = await response.json();
+    appVersionElement.textContent = `v${info.version}`;
+  } catch {
+    appVersionElement.textContent = "dev";
+  }
+};
 
 const send = (message) => {
   if (socket.readyState !== WebSocket.OPEN) {
@@ -157,3 +172,5 @@ publishForm.addEventListener("submit", (event) => {
 document.querySelector("#clear-messages").addEventListener("click", () => {
   messagesElement.replaceChildren();
 });
+
+loadAppInfo();

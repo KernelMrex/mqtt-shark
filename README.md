@@ -28,18 +28,32 @@ MQTT Shark is a small open source MQTT explorer. The MVP runs as a single Docker
 ## Run Locally
 
 ```bash
-go run ./cmd/mqtt-shark
+make run
 ```
 
 Open http://localhost:8080.
+
+## Build
+
+```bash
+make build
+```
+
+The version is embedded into the binary and exposed in the web UI through `/api/info`. Builds use the exact Git tag on `HEAD`; if `HEAD` is not tagged, they use the short commit hash.
 
 ## Run With Docker
 
 ```bash
-docker compose up --build
+make up
 ```
 
 Open http://localhost:8080.
+
+Stop the container with:
+
+```bash
+make down
+```
 
 ## Security Note
 

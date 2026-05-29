@@ -1,4 +1,4 @@
-å:root {
+:root {
   color-scheme: light dark;
   --bg: #101418;
   --panel: #171d23;
@@ -89,6 +89,11 @@ textarea {
 
 .topbar p {
   color: var(--muted);
+}
+
+.app-version {
+  color: var(--accent);
+  font-weight: 800;
 }
 
 .status {

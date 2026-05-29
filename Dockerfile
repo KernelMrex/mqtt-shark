@@ -1,6 +1,7 @@
 FROM golang:1.24-alpine AS build
 
 WORKDIR /src
+ARG APP_VERSION=dev
 
 COPY go.mod go.sum ./
 RUN go mod download
@@ -8,7 +9,7 @@ RUN go mod download
 COPY cmd ./cmd
 COPY internal ./internal
 COPY web ./web
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/mqtt-shark ./cmd/mqtt-shark
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w -X main.AppVersion=${APP_VERSION}" -o /out/mqtt-shark ./cmd/mqtt-shark
 
 FROM alpine:3.21 AS runtime
 
