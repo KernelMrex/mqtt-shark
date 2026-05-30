@@ -49,6 +49,14 @@ Stop the container with:
 make down
 ```
 
+## Container Image
+
+Pushes to `main` and version tags like `v1.2.3` publish a multi-architecture Docker image to GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/kernelmrex/mqtt-shark:latest
+```
+
 ## Security Note
 
 Credentials are only kept in the active browser session and are sent to the local MQTT Shark backend to establish a broker connection. Do not expose MQTT Shark publicly without authentication, TLS, and network restrictions.
