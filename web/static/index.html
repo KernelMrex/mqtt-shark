@@ -67,6 +67,17 @@
         <section class="panel payload-panel" aria-labelledby="payload-title">
           <div class="panel-heading payload-heading">
             <h2 id="payload-title">Payload</h2>
+            <label class="payload-format-control">
+              Format
+              <select id="payload-format" aria-label="Payload format">
+                <option value="auto">Auto</option>
+                <option value="text">Text</option>
+                <option value="json">JSON</option>
+                <option value="xml">XML</option>
+                <option value="binary">Binary</option>
+                <option value="base64">Base64</option>
+              </select>
+            </label>
           </div>
           <div id="payload-meta" class="payload-meta" hidden></div>
           <div id="payload-empty" class="payload-empty">

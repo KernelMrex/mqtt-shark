@@ -279,6 +279,24 @@ button:focus-visible {
   font-size: 17px;
 }
 
+.payload-heading {
+  align-items: center;
+}
+
+.payload-format-control {
+  display: grid;
+  gap: 5px;
+  min-width: 138px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.payload-format-control select {
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
 .history-meta {
   margin-top: 4px;
   color: var(--muted);
