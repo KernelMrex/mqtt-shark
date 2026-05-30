@@ -170,7 +170,10 @@ button:focus-visible {
 }
 
 .app-shell {
-  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  overflow: hidden;
 }
 
 .topbar {
@@ -240,12 +243,16 @@ button:focus-visible {
 .workspace {
   display: grid;
   grid-template-columns: minmax(220px, 280px) minmax(360px, 1fr) minmax(280px, 360px);
+  grid-template-rows: minmax(0, 1fr);
   gap: 16px;
-  min-height: calc(100vh - 72px);
+  min-height: 0;
+  overflow: hidden;
   padding: 16px;
 }
 
 .panel {
+  height: 100%;
+  min-height: 0;
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -262,7 +269,6 @@ button:focus-visible {
 .payload-panel {
   display: flex;
   flex-direction: column;
-  min-height: 560px;
   overflow: hidden;
 }
 
@@ -363,7 +369,10 @@ button:focus-visible {
 
 .topics-list {
   display: grid;
+  flex: 1;
+  align-content: start;
   gap: 8px;
+  min-height: 0;
   margin: 0;
   padding: 12px;
   overflow: auto;
@@ -537,8 +546,10 @@ button:focus-visible {
 
 .messages {
   display: grid;
+  flex: 1;
   align-content: start;
   gap: 10px;
+  min-height: 0;
   padding: 12px;
   overflow: auto;
 }
@@ -607,20 +618,17 @@ button:focus-visible {
 
 @media (max-width: 1120px) {
   .workspace {
-    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
-  }
-
-  .history-panel {
-    grid-column: 1 / -1;
-    min-height: 320px;
-  }
-
-  .messages {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(200px, 260px) minmax(300px, 1fr) minmax(240px, 320px);
   }
 }
 
 @media (max-width: 760px) {
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
   .topbar,
   .topbar-actions {
     align-items: stretch;
@@ -628,11 +636,21 @@ button:focus-visible {
   }
 
   .workspace {
+    height: auto;
     grid-template-columns: 1fr;
+    grid-template-rows: none;
+    overflow: visible;
   }
 
+  .topics-panel,
   .payload-panel {
-    min-height: 460px;
+    min-height: 420px;
+    max-height: calc(100vh - 32px);
+  }
+
+  .history-panel {
+    min-height: 420px;
+    max-height: calc(100vh - 32px);
   }
 
   .messages {
