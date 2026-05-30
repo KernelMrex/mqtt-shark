@@ -16,6 +16,10 @@ const payloadEmpty = document.querySelector("#payload-empty");
 const payloadFormatElement = document.querySelector("#payload-format");
 const historyMeta = document.querySelector("#history-meta");
 const discoverTopicsButton = document.querySelector("#discover-topics");
+const reconnectModal = document.querySelector("#reconnect-modal");
+const reconnectDetail = document.querySelector("#reconnect-detail");
+const reconnectNowButton = document.querySelector("#reconnect-now");
+const reconnectCancelButton = document.querySelector("#reconnect-cancel");
 
 const socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/ws`);
 
@@ -23,6 +27,12 @@ const state = {
   connected: false,
   broker: null,
   pendingBroker: null,
+  lastConnectCommand: null,
+  reconnectActive: false,
+  reconnectAttemptInFlight: false,
+  reconnectNextAt: null,
+  reconnectTimer: null,
+  manualDisconnecting: false,
   activeTopic: "all",
   payloadFormat: "auto",
   selectedMessageId: null,
@@ -30,6 +40,9 @@ const state = {
   discovering: false,
   pendingDiscoveryAction: null,
   subscriptions: new Set(),
+  subscriptionQoS: new Map(),
+  pendingSubscriptionQoS: new Map(),
+  restoringTopics: new Set(),
   discoveredTopics: new Set(),
   expandedTopicNodes: new Set(),
   messages: []
@@ -76,6 +89,11 @@ const setStatus = (status) => {
   statusElement.className = `status status-${status}`;
 
   if (status === "connecting") {
+    if (state.reconnectActive) {
+      state.reconnectAttemptInFlight = true;
+      updateReconnectDetail("Reconnecting...");
+      updateReconnectControls();
+    }
     connectButton.disabled = true;
     showConnectFeedback("Connecting...");
     return;
@@ -88,8 +106,20 @@ const setStatus = (status) => {
     return;
   }
 
+  if (status === "reconnecting" && state.connected) {
+    startReconnectLoop("Broker is reconnecting...");
+    return;
+  }
+
   if (status === "disconnected" && state.connected) {
-    closeBrokerPanel("Disconnected from broker");
+    if (state.manualDisconnecting) {
+      state.manualDisconnecting = false;
+      stopReconnectLoop();
+      closeBrokerPanel("Disconnected from broker");
+      return;
+    }
+
+    startReconnectLoop("Broker connection lost. Reconnect is required.");
   }
 };
 
@@ -103,12 +133,18 @@ const brokerURLFromForm = (form) => {
 };
 
 const resetSession = () => {
+  stopReconnectLoop();
   state.activeTopic = "all";
   state.selectedMessageId = null;
   state.selectedMessage = null;
+  state.lastConnectCommand = null;
+  state.manualDisconnecting = false;
   state.discovering = false;
   state.pendingDiscoveryAction = null;
   state.subscriptions.clear();
+  state.subscriptionQoS.clear();
+  state.pendingSubscriptionQoS.clear();
+  state.restoringTopics.clear();
   state.discoveredTopics.clear();
   state.expandedTopicNodes.clear();
   state.messages = [];
@@ -119,18 +155,28 @@ const resetSession = () => {
 };
 
 const openBrokerPanel = () => {
+  const wasReconnecting = state.reconnectActive;
+
   state.connected = true;
-  state.broker = state.pendingBroker;
+  state.broker = state.pendingBroker || state.broker;
   state.pendingBroker = null;
+  state.reconnectAttemptInFlight = false;
+  stopReconnectLoop();
 
   brokerTitle.textContent = `${state.broker.host}:${state.broker.port}`;
   connectScreen.hidden = true;
   appShell.hidden = false;
   showConnectFeedback("");
   showAppFeedback("");
+
+  if (wasReconnecting) {
+    restoreSubscriptions();
+    showAppFeedback("Reconnected to broker");
+  }
 };
 
 const closeBrokerPanel = (message = "") => {
+  stopReconnectLoop();
   state.connected = false;
   state.broker = null;
   state.pendingBroker = null;
@@ -416,6 +462,125 @@ const updateDiscoverButton = () => {
   discoverTopicsButton.disabled = Boolean(state.pendingDiscoveryAction);
   discoverTopicsButton.textContent = state.discovering ? "Stop" : "Discover";
   discoverTopicsButton.classList.toggle("is-active", state.discovering);
+};
+
+const startReconnectLoop = (message = "MQTT Shark will try to reconnect automatically.") => {
+  if (!state.lastConnectCommand) {
+    showAppFeedback("Broker connection lost. Reconnect from the connection screen.", true);
+    return;
+  }
+
+  const alreadyActive = state.reconnectActive;
+
+  state.reconnectActive = true;
+  reconnectModal.hidden = false;
+  document.querySelector("#reconnect-message").textContent = message;
+
+  if (!alreadyActive && !state.reconnectAttemptInFlight) {
+    scheduleReconnectAttempt(5000);
+  } else {
+    updateReconnectControls();
+  }
+
+  if (!state.reconnectTimer) {
+    state.reconnectTimer = window.setInterval(tickReconnectLoop, 1000);
+  }
+};
+
+const stopReconnectLoop = () => {
+  state.reconnectActive = false;
+  state.reconnectAttemptInFlight = false;
+  state.reconnectNextAt = null;
+  reconnectModal.hidden = true;
+  updateReconnectControls();
+
+  if (state.reconnectTimer) {
+    window.clearInterval(state.reconnectTimer);
+    state.reconnectTimer = null;
+  }
+};
+
+const scheduleReconnectAttempt = (delayMs) => {
+  state.reconnectNextAt = Date.now() + delayMs;
+  state.reconnectAttemptInFlight = false;
+  updateReconnectCountdown();
+  updateReconnectControls();
+};
+
+const tickReconnectLoop = () => {
+  if (!state.reconnectActive || state.reconnectAttemptInFlight) {
+    return;
+  }
+
+  if (Date.now() >= state.reconnectNextAt) {
+    attemptReconnect();
+    return;
+  }
+
+  updateReconnectCountdown();
+};
+
+const updateReconnectCountdown = () => {
+  if (!state.reconnectNextAt) {
+    return;
+  }
+
+  const seconds = Math.max(1, Math.ceil((state.reconnectNextAt - Date.now()) / 1000));
+  updateReconnectDetail(`Next attempt in ${seconds}s`);
+};
+
+const updateReconnectDetail = (message) => {
+  reconnectDetail.textContent = message;
+};
+
+const updateReconnectControls = () => {
+  reconnectNowButton.disabled = state.reconnectAttemptInFlight;
+  reconnectNowButton.textContent = state.reconnectAttemptInFlight ? "Reconnecting..." : "Reconnect now";
+};
+
+const attemptReconnect = () => {
+  if (state.reconnectAttemptInFlight) {
+    updateReconnectDetail("Reconnect attempt is already running...");
+    updateReconnectControls();
+    return;
+  }
+
+  if (!state.lastConnectCommand || socket.readyState !== WebSocket.OPEN) {
+    updateReconnectDetail("WebSocket is disconnected");
+    scheduleReconnectAttempt(5000);
+    return;
+  }
+
+  state.reconnectAttemptInFlight = true;
+  state.reconnectNextAt = null;
+  updateReconnectDetail("Reconnecting...");
+  updateReconnectControls();
+  send(state.lastConnectCommand);
+};
+
+const markReconnectAttemptFailed = (message) => {
+  if (!state.reconnectActive) {
+    return;
+  }
+
+  state.reconnectAttemptInFlight = false;
+  scheduleReconnectAttempt(5000);
+  updateReconnectDetail(`${message}. Next attempt in 5s`);
+};
+
+const restoreSubscriptions = () => {
+  const subscriptions = [...state.subscriptions];
+
+  for (const topic of subscriptions) {
+    const qos = state.subscriptionQoS.get(topic) ?? 0;
+    state.restoringTopics.add(topic);
+    send({ type: "subscribe", topic, qos });
+  }
+
+  if (state.discovering) {
+    state.restoringTopics.add("#");
+    send({ type: "subscribe", topic: "#", qos: 0 });
+  }
 };
 
 const renderMessages = () => {
@@ -743,6 +908,7 @@ socket.addEventListener("message", (event) => {
       state.pendingDiscoveryAction = null;
       updateDiscoverButton();
     }
+    markReconnectAttemptFailed(message.message);
 
     setStatus("error");
     if (state.connected) {
@@ -760,9 +926,21 @@ socket.addEventListener("message", (event) => {
   }
 
   if (message.type === "subscription") {
+    if (state.restoringTopics.has(message.topic)) {
+      state.restoringTopics.delete(message.topic);
+      if (message.topic !== "#") {
+        state.subscriptions.add(message.topic);
+        state.subscriptionQoS.set(message.topic, state.subscriptionQoS.get(message.topic) ?? 0);
+      }
+      renderTopics();
+      renderMessages();
+      return;
+    }
+
     if (message.topic === "#" && state.pendingDiscoveryAction) {
       state.discovering = message.subscribed;
       state.pendingDiscoveryAction = null;
+      state.pendingSubscriptionQoS.delete("#");
       updateDiscoverButton();
       showAppFeedback(message.subscribed ? "Discovering topics through #" : "Stopped topic discovery");
       renderTopics();
@@ -771,6 +949,8 @@ socket.addEventListener("message", (event) => {
 
     if (message.subscribed) {
       state.subscriptions.add(message.topic);
+      state.subscriptionQoS.set(message.topic, state.pendingSubscriptionQoS.get(message.topic) ?? 0);
+      state.pendingSubscriptionQoS.delete(message.topic);
       if (!isWildcardTopic(message.topic)) {
         state.discoveredTopics.add(message.topic);
         state.activeTopic = message.topic;
@@ -779,6 +959,8 @@ socket.addEventListener("message", (event) => {
       showAppFeedback(`Subscribed to ${message.topic}`);
     } else {
       state.subscriptions.delete(message.topic);
+      state.subscriptionQoS.delete(message.topic);
+      state.pendingSubscriptionQoS.delete(message.topic);
       if (state.activeTopic === message.topic) {
         state.activeTopic = "all";
         selectMessage(messagesForActiveTopic()[0] || null);
@@ -798,14 +980,18 @@ connectionForm.addEventListener("submit", (event) => {
 
   resetSession();
   state.pendingBroker = broker;
-  send({
+  const command = {
     type: "connect",
     url: broker.url,
     clean: true
-  });
+  };
+  state.lastConnectCommand = command;
+  send(command);
 });
 
 document.querySelector("#disconnect").addEventListener("click", () => {
+  state.manualDisconnecting = true;
+  stopReconnectLoop();
   send({ type: "disconnect" });
 });
 
@@ -820,10 +1006,12 @@ subscribeForm.addEventListener("submit", (event) => {
     return;
   }
 
+  const qos = Number(document.querySelector("#subscribe-qos").value);
+  state.pendingSubscriptionQoS.set(topic, qos);
   send({
     type: "subscribe",
     topic,
-    qos: Number(document.querySelector("#subscribe-qos").value)
+    qos
   });
 
   topicInput.value = "";
@@ -835,6 +1023,7 @@ const startTopicDiscovery = () => {
   }
 
   state.pendingDiscoveryAction = "start";
+  state.pendingSubscriptionQoS.set("#", 0);
   updateDiscoverButton();
   send({
     type: "subscribe",
@@ -862,6 +1051,18 @@ discoverTopicsButton.addEventListener("click", () => {
   } else {
     startTopicDiscovery();
   }
+});
+
+reconnectNowButton.addEventListener("click", () => {
+  if (state.reconnectActive) {
+    attemptReconnect();
+  }
+});
+
+reconnectCancelButton.addEventListener("click", () => {
+  state.manualDisconnecting = true;
+  stopReconnectLoop();
+  send({ type: "disconnect" });
 });
 
 payloadFormatElement.addEventListener("change", () => {

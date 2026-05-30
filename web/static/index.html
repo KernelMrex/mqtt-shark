@@ -98,6 +98,20 @@
           <div id="messages" class="messages" aria-live="polite"></div>
         </aside>
       </main>
+
+      <div id="reconnect-modal" class="modal-backdrop" hidden>
+        <section class="modal" role="alertdialog" aria-labelledby="reconnect-title" aria-describedby="reconnect-message">
+          <div>
+            <h2 id="reconnect-title">Broker connection lost</h2>
+            <p id="reconnect-message">MQTT Shark will try to reconnect automatically.</p>
+          </div>
+          <p id="reconnect-detail" class="modal-detail">Next attempt in 5s</p>
+          <div class="modal-actions">
+            <button id="reconnect-now" type="button">Reconnect now</button>
+            <button id="reconnect-cancel" type="button" class="secondary">Disconnect</button>
+          </div>
+        </section>
+      </div>
     </div>
 
     <script src="/app.js" type="module"></script>
