@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/KernelMrex/mqtt-shark/internal/domain"
 	pahomqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/mqtt-shark/mqtt-shark/internal/domain"
 )
 
 type Factory struct{}

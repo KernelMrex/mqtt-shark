@@ -1,4 +1,4 @@
-module github.com/mqtt-shark/mqtt-shark
+module github.com/KernelMrex/mqtt-shark
 
 go 1.24
 

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/mqtt-shark/mqtt-shark/internal/infrastructure/bootstrap"
-	"github.com/mqtt-shark/mqtt-shark/web"
+	"github.com/KernelMrex/mqtt-shark/internal/infrastructure/bootstrap"
+	"github.com/KernelMrex/mqtt-shark/web"
 )
 
 // AppVersion Populated by -ldflags "-X main.AppVersion=..."

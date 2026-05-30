@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/KernelMrex/mqtt-shark/internal/domain"
 	"github.com/gorilla/websocket"
-	"github.com/mqtt-shark/mqtt-shark/internal/domain"
 )
 
 type command struct {

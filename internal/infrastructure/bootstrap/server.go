@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/mqtt-shark/mqtt-shark/internal/infrastructure/mqtt/paho"
-	"github.com/mqtt-shark/mqtt-shark/internal/infrastructure/realtime"
+	"github.com/KernelMrex/mqtt-shark/internal/infrastructure/mqtt/paho"
+	"github.com/KernelMrex/mqtt-shark/internal/infrastructure/realtime"
 )
 
 type Config struct {
