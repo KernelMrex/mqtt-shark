@@ -14,6 +14,7 @@ const payloadViewer = document.querySelector("#payload-viewer");
 const payloadMeta = document.querySelector("#payload-meta");
 const payloadEmpty = document.querySelector("#payload-empty");
 const historyMeta = document.querySelector("#history-meta");
+const discoverTopicsButton = document.querySelector("#discover-topics");
 
 const socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/ws`);
 
@@ -23,7 +24,11 @@ const state = {
   pendingBroker: null,
   activeTopic: "all",
   selectedMessageId: null,
+  discovering: false,
+  pendingDiscoveryAction: null,
   subscriptions: new Set(),
+  discoveredTopics: new Set(),
+  expandedTopicNodes: new Set(),
   messages: []
 };
 
@@ -97,8 +102,13 @@ const brokerURLFromForm = (form) => {
 const resetSession = () => {
   state.activeTopic = "all";
   state.selectedMessageId = null;
+  state.discovering = false;
+  state.pendingDiscoveryAction = null;
   state.subscriptions.clear();
+  state.discoveredTopics.clear();
+  state.expandedTopicNodes.clear();
   state.messages = [];
+  updateDiscoverButton();
   renderTopics();
   renderMessages();
   renderPayload(null);
@@ -131,28 +141,80 @@ const messagesForActiveTopic = () => {
     return state.messages;
   }
 
+  if (isWildcardTopic(state.activeTopic)) {
+    return state.messages.filter((message) => mqttTopicMatches(state.activeTopic, message.topic));
+  }
+
   return state.messages.filter((message) => message.topic === state.activeTopic);
 };
 
-const getKnownTopics = () => {
-  const topics = new Map();
+const mqttTopicMatches = (filter, topic) => {
+  const filterSegments = filter.split("/");
+  const topicSegments = topic.split("/");
 
-  for (const topic of state.subscriptions) {
-    topics.set(topic, { topic, count: 0, subscribed: true });
+  for (let index = 0; index < filterSegments.length; index += 1) {
+    const segment = filterSegments[index];
+
+    if (segment === "#") {
+      return index === filterSegments.length - 1;
+    }
+
+    if (index >= topicSegments.length) {
+      return false;
+    }
+
+    if (segment !== "+" && segment !== topicSegments[index]) {
+      return false;
+    }
   }
 
+  return filterSegments.length === topicSegments.length;
+};
+
+const getMessageCountsByTopic = () => {
+  const topics = new Map();
+
   for (const message of state.messages) {
-    const existing = topics.get(message.topic) || {
-      topic: message.topic,
-      count: 0,
-      subscribed: state.subscriptions.has(message.topic)
-    };
-    existing.count += 1;
-    topics.set(message.topic, existing);
+    topics.set(message.topic, (topics.get(message.topic) || 0) + 1);
+  }
+
+  return topics;
+};
+
+const isWildcardTopic = (topic) => topic.includes("#") || topic.includes("+");
+
+const getDiscoveredTopics = () => {
+  const messageCounts = getMessageCountsByTopic();
+  const topics = new Map();
+
+  for (const topic of state.discoveredTopics) {
+    topics.set(topic, {
+      topic,
+      count: messageCounts.get(topic) || 0,
+      subscribed: state.subscriptions.has(topic)
+    });
+  }
+
+  for (const topic of state.subscriptions) {
+    if (isWildcardTopic(topic)) {
+      continue;
+    }
+
+    topics.set(topic, {
+      topic,
+      count: messageCounts.get(topic) || 0,
+      subscribed: true
+    });
   }
 
   return [...topics.values()].sort((left, right) => left.topic.localeCompare(right.topic));
 };
+
+const getWildcardSubscriptions = () => [...state.subscriptions]
+  .filter((topic) => isWildcardTopic(topic))
+  .sort((left, right) => left.localeCompare(right));
+
+const messagesForFilter = (filter) => state.messages.filter((message) => mqttTopicMatches(filter, message.topic));
 
 const renderTopics = () => {
   topicsListElement.replaceChildren();
@@ -165,8 +227,26 @@ const renderTopics = () => {
   });
   topicsListElement.append(allItem);
 
-  for (const topic of getKnownTopics()) {
-    topicsListElement.append(createTopicItem(topic));
+  for (const topic of getWildcardSubscriptions()) {
+    topicsListElement.append(createTopicItem({
+      topic,
+      label: `Filter: ${topic}`,
+      count: messagesForFilter(topic).length,
+      subscribed: true
+    }));
+  }
+
+  const topics = getDiscoveredTopics();
+  if (topics.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "topics-empty";
+    empty.textContent = state.discovering ? "Waiting for broker messages" : "Start discovery to observe topics";
+    topicsListElement.append(empty);
+    return;
+  }
+
+  for (const node of buildTopicTree(topics)) {
+    topicsListElement.append(createTopicTreeItem(node, 0));
   }
 };
 
@@ -210,6 +290,131 @@ const createTopicItem = ({ topic, label = topic, count, subscribed }) => {
 
   item.append(button);
   return item;
+};
+
+const buildTopicTree = (topics) => {
+  const root = { children: new Map() };
+
+  for (const topic of topics) {
+    const segments = topic.topic.split("/");
+    let current = root;
+
+    segments.forEach((segment, index) => {
+      const key = segments.slice(0, index + 1).join("\u001f");
+      const path = segments.slice(0, index + 1).join("/");
+      const existing = current.children.get(segment);
+      const child = existing || {
+        key,
+        label: segment || "(empty)",
+        path,
+        topic: path,
+        count: 0,
+        aggregateCount: 0,
+        subscribed: false,
+        hasTopic: false,
+        children: new Map()
+      };
+
+      child.aggregateCount += topic.count;
+      current.children.set(segment, child);
+      current = child;
+    });
+
+    current.count = topic.count;
+    current.subscribed = topic.subscribed;
+    current.hasTopic = true;
+  }
+
+  return sortTopicNodes(root.children);
+};
+
+const sortTopicNodes = (children) => [...children.values()].sort((left, right) => left.label.localeCompare(right.label));
+
+const createTopicTreeItem = (node, depth) => {
+  const item = document.createElement("li");
+  const row = document.createElement("div");
+  const toggle = document.createElement("button");
+  const label = document.createElement("button");
+  const name = document.createElement("span");
+  const meta = document.createElement("span");
+  const hasChildren = node.children.size > 0;
+  const isExpanded = state.expandedTopicNodes.has(node.key);
+
+  item.className = "topic-tree-item";
+  row.className = "topic-tree-row";
+  row.style.setProperty("--topic-depth", String(depth));
+
+  toggle.type = "button";
+  toggle.className = "topic-toggle";
+  toggle.textContent = hasChildren ? (isExpanded ? "▾" : "▸") : "";
+  toggle.disabled = !hasChildren;
+  toggle.title = hasChildren ? `${isExpanded ? "Collapse" : "Expand"} ${node.path}` : "";
+  toggle.addEventListener("click", () => {
+    if (isExpanded) {
+      state.expandedTopicNodes.delete(node.key);
+    } else {
+      state.expandedTopicNodes.add(node.key);
+    }
+    renderTopics();
+  });
+
+  label.type = "button";
+  label.className = "topic-node-button";
+  label.classList.toggle("is-active", state.activeTopic === node.topic);
+  label.disabled = !node.hasTopic;
+  label.addEventListener("click", () => {
+    if (node.hasTopic) {
+      selectTopic(node.topic);
+    }
+  });
+
+  name.className = "topic-name";
+  name.textContent = node.label;
+  meta.className = "topic-meta";
+  meta.textContent = node.subscribed ? `${node.count} msg · subscribed` : `${node.count} msg`;
+
+  label.append(name, meta);
+  row.append(toggle, label);
+
+  if (node.subscribed) {
+    const unsubscribe = document.createElement("button");
+    unsubscribe.type = "button";
+    unsubscribe.className = "topic-remove";
+    unsubscribe.textContent = "×";
+    unsubscribe.title = `Unsubscribe from ${node.topic}`;
+    unsubscribe.addEventListener("click", () => {
+      send({ type: "unsubscribe", topic: node.topic });
+    });
+    row.append(unsubscribe);
+  }
+
+  item.append(row);
+
+  if (hasChildren && isExpanded) {
+    const children = document.createElement("ul");
+    children.className = "topic-tree-children";
+    for (const child of sortTopicNodes(node.children)) {
+      children.append(createTopicTreeItem(child, depth + 1));
+    }
+    item.append(children);
+  }
+
+  return item;
+};
+
+const selectTopic = (topic) => {
+  state.activeTopic = topic;
+  const latest = messagesForActiveTopic()[0] || null;
+  state.selectedMessageId = latest?.id || null;
+  renderTopics();
+  renderMessages();
+  renderPayload(latest);
+};
+
+const updateDiscoverButton = () => {
+  discoverTopicsButton.disabled = Boolean(state.pendingDiscoveryAction);
+  discoverTopicsButton.textContent = state.discovering ? "Stop" : "Discover";
+  discoverTopicsButton.classList.toggle("is-active", state.discovering);
 };
 
 const renderMessages = () => {
@@ -299,6 +504,9 @@ const createMetaItem = (label, value) => {
 };
 
 const addBrokerMessage = ({ topic, payload, qos, retain, receivedAt }) => {
+  state.discoveredTopics.add(topic);
+  expandTopicAncestors(topic);
+
   const message = {
     id: crypto.randomUUID(),
     topic,
@@ -319,6 +527,14 @@ const addBrokerMessage = ({ topic, payload, qos, retain, receivedAt }) => {
 
   renderTopics();
   renderMessages();
+};
+
+const expandTopicAncestors = (topic) => {
+  const segments = topic.split("/");
+
+  for (let index = 0; index < segments.length - 1; index += 1) {
+    state.expandedTopicNodes.add(segments.slice(0, index + 1).join("\u001f"));
+  }
 };
 
 socket.addEventListener("open", () => setStatus("idle"));
@@ -346,6 +562,11 @@ socket.addEventListener("message", (event) => {
   }
 
   if (message.type === "error") {
+    if (state.pendingDiscoveryAction) {
+      state.pendingDiscoveryAction = null;
+      updateDiscoverButton();
+    }
+
     setStatus("error");
     if (state.connected) {
       showAppFeedback(message.message, true);
@@ -362,9 +583,21 @@ socket.addEventListener("message", (event) => {
   }
 
   if (message.type === "subscription") {
+    if (message.topic === "#" && state.pendingDiscoveryAction) {
+      state.discovering = message.subscribed;
+      state.pendingDiscoveryAction = null;
+      updateDiscoverButton();
+      showAppFeedback(message.subscribed ? "Discovering topics through #" : "Stopped topic discovery");
+      renderTopics();
+      return;
+    }
+
     if (message.subscribed) {
       state.subscriptions.add(message.topic);
-      state.activeTopic = message.topic;
+      if (!isWildcardTopic(message.topic)) {
+        state.discoveredTopics.add(message.topic);
+        state.activeTopic = message.topic;
+      }
       showAppFeedback(`Subscribed to ${message.topic}`);
     } else {
       state.subscriptions.delete(message.topic);
@@ -400,14 +633,56 @@ document.querySelector("#disconnect").addEventListener("click", () => {
 subscribeForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const topicInput = document.querySelector("#subscribe-topic");
+  const topic = topicInput.value.trim();
+
+  if (topic === "#") {
+    startTopicDiscovery();
+    topicInput.value = "";
+    return;
+  }
 
   send({
     type: "subscribe",
-    topic: topicInput.value,
+    topic,
     qos: Number(document.querySelector("#subscribe-qos").value)
   });
 
   topicInput.value = "";
+});
+
+const startTopicDiscovery = () => {
+  if (state.discovering || state.pendingDiscoveryAction) {
+    return;
+  }
+
+  state.pendingDiscoveryAction = "start";
+  updateDiscoverButton();
+  send({
+    type: "subscribe",
+    topic: "#",
+    qos: 0
+  });
+};
+
+const stopTopicDiscovery = () => {
+  if (!state.discovering || state.pendingDiscoveryAction) {
+    return;
+  }
+
+  state.pendingDiscoveryAction = "stop";
+  updateDiscoverButton();
+  send({
+    type: "unsubscribe",
+    topic: "#"
+  });
+};
+
+discoverTopicsButton.addEventListener("click", () => {
+  if (state.discovering) {
+    stopTopicDiscovery();
+  } else {
+    startTopicDiscovery();
+  }
 });
 
 document.querySelector("#clear-messages").addEventListener("click", () => {
@@ -418,6 +693,7 @@ document.querySelector("#clear-messages").addEventListener("click", () => {
   renderPayload(null);
 });
 
+updateDiscoverButton();
 renderTopics();
 renderMessages();
 loadAppInfo();

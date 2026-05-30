@@ -44,7 +44,11 @@
       <main class="workspace">
         <aside class="panel topics-panel" aria-labelledby="topics-title">
           <div class="panel-heading">
-            <h2 id="topics-title">Topics</h2>
+            <div>
+              <h2 id="topics-title">Discovered topics</h2>
+              <p class="topics-meta">Observed through # discovery</p>
+            </div>
+            <button id="discover-topics" type="button" class="secondary compact">Discover</button>
           </div>
           <form id="subscribe-form" class="subscribe-form">
             <input id="subscribe-topic" placeholder="sensors/#" required>
