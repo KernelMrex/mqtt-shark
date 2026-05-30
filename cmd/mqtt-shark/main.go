@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/mqtt-shark/mqtt-shark/internal/app"
+	"github.com/mqtt-shark/mqtt-shark/internal/infrastructure/bootstrap"
 	"github.com/mqtt-shark/mqtt-shark/web"
 )
 
@@ -16,7 +16,7 @@ var AppVersion = "dev"
 func main() {
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 
-	server, err := app.New(app.Config{
+	server, err := bootstrap.New(bootstrap.Config{
 		Addr:     ":" + env("PORT", "8080"),
 		Version:  AppVersion,
 		Logger:   logger,

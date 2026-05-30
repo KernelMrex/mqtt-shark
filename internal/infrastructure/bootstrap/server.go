@@ -1,4 +1,4 @@
-package app
+package bootstrap
 
 import (
 	"encoding/json"
@@ -9,7 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/mqtt-shark/mqtt-shark/internal/realtime"
+	"github.com/mqtt-shark/mqtt-shark/internal/infrastructure/mqtt/paho"
+	"github.com/mqtt-shark/mqtt-shark/internal/infrastructure/realtime"
 )
 
 type Config struct {
@@ -48,7 +49,7 @@ func New(config Config) (*http.Server, error) {
 		})
 	})
 	mux.Handle("/", http.FileServer(http.FS(config.PublicFS)))
-	mux.HandleFunc("/api/ws", realtime.Handle(logger))
+	mux.HandleFunc("/api/ws", realtime.Handle(logger, paho.Factory{}))
 
 	return &http.Server{
 		Addr:              addr,
