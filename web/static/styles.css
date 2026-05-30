@@ -547,6 +547,11 @@ button:focus-visible {
   background: var(--accent-soft);
 }
 
+.message-card.is-pinned .message-button {
+  border-color: var(--warning);
+  background: rgba(230, 180, 80, 0.1);
+}
+
 .message-meta {
   display: grid;
   gap: 4px;

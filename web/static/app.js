@@ -24,6 +24,7 @@ const state = {
   pendingBroker: null,
   activeTopic: "all",
   selectedMessageId: null,
+  selectedMessage: null,
   discovering: false,
   pendingDiscoveryAction: null,
   subscriptions: new Set(),
@@ -102,6 +103,7 @@ const brokerURLFromForm = (form) => {
 const resetSession = () => {
   state.activeTopic = "all";
   state.selectedMessageId = null;
+  state.selectedMessage = null;
   state.discovering = false;
   state.pendingDiscoveryAction = null;
   state.subscriptions.clear();
@@ -137,15 +139,19 @@ const closeBrokerPanel = (message = "") => {
 };
 
 const messagesForActiveTopic = () => {
+  return state.messages.filter((message) => messageMatchesActiveTopic(message));
+};
+
+const messageMatchesActiveTopic = (message) => {
   if (state.activeTopic === "all") {
-    return state.messages;
+    return true;
   }
 
   if (isWildcardTopic(state.activeTopic)) {
-    return state.messages.filter((message) => mqttTopicMatches(state.activeTopic, message.topic));
+    return mqttTopicMatches(state.activeTopic, message.topic);
   }
 
-  return state.messages.filter((message) => message.topic === state.activeTopic);
+  return message.topic === state.activeTopic;
 };
 
 const mqttTopicMatches = (filter, topic) => {
@@ -260,12 +266,7 @@ const createTopicItem = ({ topic, label = topic, count, subscribed }) => {
   button.className = "topic-button";
   button.classList.toggle("is-active", state.activeTopic === topic);
   button.addEventListener("click", () => {
-    state.activeTopic = topic;
-    const latest = messagesForActiveTopic()[0] || null;
-    state.selectedMessageId = latest?.id || null;
-    renderTopics();
-    renderMessages();
-    renderPayload(latest);
+    selectTopic(topic);
   });
 
   name.className = "topic-name";
@@ -404,11 +405,9 @@ const createTopicTreeItem = (node, depth) => {
 
 const selectTopic = (topic) => {
   state.activeTopic = topic;
-  const latest = messagesForActiveTopic()[0] || null;
-  state.selectedMessageId = latest?.id || null;
+  selectMessage(messagesForActiveTopic()[0] || null);
   renderTopics();
   renderMessages();
-  renderPayload(latest);
 };
 
 const updateDiscoverButton = () => {
@@ -420,9 +419,15 @@ const updateDiscoverButton = () => {
 const renderMessages = () => {
   messagesElement.replaceChildren();
 
-  const messages = messagesForActiveTopic().slice(0, visibleMessages);
-  const visibleCount = messages.length;
-  historyMeta.textContent = `${visibleCount} of latest ${visibleMessages} shown`;
+  const latestMessages = messagesForActiveTopic().slice(0, visibleMessages);
+  const selectedOutsideLatest = state.selectedMessage
+    && messageMatchesActiveTopic(state.selectedMessage)
+    && !latestMessages.some((message) => message.id === state.selectedMessage.id);
+  const messages = selectedOutsideLatest ? [state.selectedMessage, ...latestMessages] : latestMessages;
+  const visibleCount = latestMessages.length;
+  historyMeta.textContent = selectedOutsideLatest
+    ? `Selected + ${visibleCount} of latest ${visibleMessages} shown`
+    : `${visibleCount} of latest ${visibleMessages} shown`;
 
   if (messages.length === 0) {
     const empty = document.createElement("p");
@@ -433,11 +438,13 @@ const renderMessages = () => {
   }
 
   for (const message of messages) {
-    messagesElement.append(createMessageCard(message));
+    messagesElement.append(createMessageCard(message, {
+      pinned: selectedOutsideLatest && message.id === state.selectedMessage.id
+    }));
   }
 };
 
-const createMessageCard = (message) => {
+const createMessageCard = (message, { pinned = false } = {}) => {
   const item = document.createElement("article");
   const button = document.createElement("button");
   const meta = document.createElement("div");
@@ -446,19 +453,19 @@ const createMessageCard = (message) => {
   const preview = document.createElement("p");
 
   item.className = "message-card";
+  item.classList.toggle("is-pinned", pinned);
   button.type = "button";
   button.className = "message-button";
   button.classList.toggle("is-active", message.id === state.selectedMessageId);
   button.addEventListener("click", () => {
-    state.selectedMessageId = message.id;
+    selectMessage(message);
     renderMessages();
-    renderPayload(message);
   });
 
   meta.className = "message-meta";
   topic.className = "message-topic";
   topic.textContent = message.topic;
-  time.textContent = `${new Date(message.receivedAt).toLocaleTimeString()} · QoS ${message.qos}${message.retain ? " · retained" : ""}`;
+  time.textContent = `${pinned ? "selected · " : ""}${new Date(message.receivedAt).toLocaleTimeString()} · QoS ${message.qos}${message.retain ? " · retained" : ""}`;
   preview.className = "message-preview";
   preview.textContent = message.payload || "(empty payload)";
 
@@ -466,6 +473,12 @@ const createMessageCard = (message) => {
   button.append(meta, preview);
   item.append(button);
   return item;
+};
+
+const selectMessage = (message) => {
+  state.selectedMessage = message;
+  state.selectedMessageId = message?.id || null;
+  renderPayload(message);
 };
 
 const renderPayload = (message) => {
@@ -519,10 +532,8 @@ const addBrokerMessage = ({ topic, payload, qos, retain, receivedAt }) => {
   state.messages.unshift(message);
   state.messages = state.messages.slice(0, maxHistory);
 
-  const shouldSelect = !state.selectedMessageId || state.activeTopic === topic || state.activeTopic === "all";
-  if (shouldSelect) {
-    state.selectedMessageId = message.id;
-    renderPayload(message);
+  if (!state.selectedMessageId && messageMatchesActiveTopic(message)) {
+    selectMessage(message);
   }
 
   renderTopics();
@@ -597,12 +608,14 @@ socket.addEventListener("message", (event) => {
       if (!isWildcardTopic(message.topic)) {
         state.discoveredTopics.add(message.topic);
         state.activeTopic = message.topic;
+        selectMessage(messagesForActiveTopic()[0] || null);
       }
       showAppFeedback(`Subscribed to ${message.topic}`);
     } else {
       state.subscriptions.delete(message.topic);
       if (state.activeTopic === message.topic) {
         state.activeTopic = "all";
+        selectMessage(messagesForActiveTopic()[0] || null);
       }
       showAppFeedback(`Unsubscribed from ${message.topic}`);
     }
@@ -688,6 +701,7 @@ discoverTopicsButton.addEventListener("click", () => {
 document.querySelector("#clear-messages").addEventListener("click", () => {
   state.messages = [];
   state.selectedMessageId = null;
+  state.selectedMessage = null;
   renderTopics();
   renderMessages();
   renderPayload(null);
