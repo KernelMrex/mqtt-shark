@@ -1,53 +1,35 @@
 # MQTT Shark
 
-MQTT Shark is a small open source MQTT explorer. The MVP runs as a single Docker image with a Go backend and a React frontend.
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Docker image](https://img.shields.io/badge/docker-ghcr.io%2Fkernelmrex%2Fmqtt--shark-blue.svg)](https://github.com/KernelMrex/mqtt-shark/pkgs/container/mqtt-shark)
 
-See [ROADMAP.md](ROADMAP.md) for planned work.
+MQTT Shark is a lightweight web MQTT explorer for debugging broker traffic from your browser. It helps you connect to a broker, discover live topics, inspect incoming messages, and understand payloads without installing a desktop client.
 
-## MVP
+It ships as a single Docker image with a Go backend, a React frontend, and an embedded production build, so the same artifact can run locally, in a lab, or next to your MQTT infrastructure.
 
-- Connect to MQTT brokers through `mqtt://`, `mqtts://`, `ws://`, or `wss://`.
-- Subscribe and unsubscribe to topics.
-- Publish messages with QoS and retain options.
-- View incoming messages in the browser.
-- Package frontend and backend into one Docker image.
+## Why MQTT Shark
 
-## Stack
+- Fast broker inspection when you need to see what is actually moving through MQTT.
+- Topic discovery through `#`, shown as a navigable topic tree instead of a flat stream.
+- Message history with QoS, retain flag, timestamps, topic filters, and selected-message pinning.
+- Payload viewer with auto detection and explicit `Text`, `JSON`, `XML`, `Binary`, and `Base64` modes.
+- Simple deployment: one HTTP service, one Docker image, no separate frontend hosting.
 
-- Go backend: `net/http`, embedded static files, WebSocket bridge.
-- MQTT client: Eclipse Paho MQTT.
-- Frontend: React and Vite. The production build is written to `backend/web/dist` and embedded into the Go binary.
-- Docker builds: Buildx with Zig cc for CGO-ready Linux binaries.
+## Quick Start
 
-## Run Locally
+Run the published image:
 
 ```bash
-make run
+docker run --rm -p 8080:8080 ghcr.io/kernelmrex/mqtt-shark:latest
 ```
 
-Open http://localhost:8080.
+Open http://localhost:8080 and connect to your broker.
 
-For frontend-only development, run the Go backend with `make run` and the Vite dev server with:
-
-```bash
-make frontend-dev
-```
-
-## Build
-
-```bash
-make build
-```
-
-The frontend is built first, then embedded into the Go binary. The version is exposed in the web UI through `/api/info`. Builds use the exact Git tag on `HEAD`; if `HEAD` is not tagged, they use the short commit hash.
-
-## Run With Docker
+Or build and run the local Docker image:
 
 ```bash
 make up
 ```
-
-Open http://localhost:8080.
 
 Stop the container with:
 
@@ -55,14 +37,57 @@ Stop the container with:
 make down
 ```
 
-## Container Image
+## Local Development
 
-Pushes to `main` and version tags like `v1.2.3` publish a multi-architecture Docker image to GitHub Container Registry:
+Run the full app locally:
 
 ```bash
-docker pull ghcr.io/kernelmrex/mqtt-shark:latest
+make run
 ```
+
+For frontend-only development, keep the Go backend running with `make run`, then start Vite:
+
+```bash
+make frontend-dev
+```
+
+The app is served from http://localhost:8080. The Vite dev server proxies API traffic to the Go backend.
+
+## Build and Test
+
+Build the local binary:
+
+```bash
+make build
+```
+
+Run checks:
+
+```bash
+make check
+```
+
+The frontend is built first, then embedded into the Go binary. The app version is exposed in the web UI through `/api/info`; tagged builds use the exact Git tag on `HEAD`, while untagged builds use the short commit hash.
+
+## Architecture
+
+- Backend: Go `net/http`, embedded static files, and a WebSocket bridge.
+- MQTT client: Eclipse Paho MQTT.
+- Frontend: React and Vite.
+- Packaging: Docker Buildx multi-architecture images for `linux/amd64` and `linux/arm64`.
+
+## Compatibility Note
+
+Versions before `v1.0.0` do not guarantee backward compatibility between the frontend and backend.
+
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for planned work. The near-term direction is practical MQTT exploration: smoother publishing, saved broker profiles, stronger tests around session behavior, and safer exposed deployments.
 
 ## Security Note
 
-Credentials are only kept in the active browser session and are sent to the local MQTT Shark backend to establish a broker connection. Do not expose MQTT Shark publicly without authentication, TLS, and network restrictions.
+MQTT Shark is designed as an operator/debugging tool. Do not expose it publicly without authentication, TLS, and network restrictions.
+
+## License
+
+MQTT Shark is released under the [MIT License](LICENSE).
