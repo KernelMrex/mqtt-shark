@@ -1,6 +1,6 @@
 # MQTT Shark
 
-MQTT Shark is a small open source MQTT explorer. The MVP runs as a single Docker image with a Go backend and a lightweight static frontend.
+MQTT Shark is a small open source MQTT explorer. The MVP runs as a single Docker image with a Go backend and a React frontend.
 
 See [ROADMAP.md](ROADMAP.md) for planned work.
 
@@ -16,7 +16,7 @@ See [ROADMAP.md](ROADMAP.md) for planned work.
 
 - Go backend: `net/http`, embedded static files, WebSocket bridge.
 - MQTT client: Eclipse Paho MQTT.
-- Frontend: plain HTML, CSS, and browser JavaScript with no build step.
+- Frontend: React and Vite. The production build is written to `backend/web/dist` and embedded into the Go binary.
 - Docker builds: Buildx with Zig cc for CGO-ready Linux binaries.
 
 ## Run Locally
@@ -27,13 +27,19 @@ make run
 
 Open http://localhost:8080.
 
+For frontend-only development, run the Go backend with `make run` and the Vite dev server with:
+
+```bash
+make frontend-dev
+```
+
 ## Build
 
 ```bash
 make build
 ```
 
-The version is embedded into the binary and exposed in the web UI through `/api/info`. Builds use the exact Git tag on `HEAD`; if `HEAD` is not tagged, they use the short commit hash.
+The frontend is built first, then embedded into the Go binary. The version is exposed in the web UI through `/api/info`. Builds use the exact Git tag on `HEAD`; if `HEAD` is not tagged, they use the short commit hash.
 
 ## Run With Docker
 

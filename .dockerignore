@@ -5,4 +5,6 @@ Dockerfile
 README.md
 bin
 dist
+backend/web/dist
+web/node_modules
 mqtt-shark

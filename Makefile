@@ -5,6 +5,7 @@ CONTAINER_NAME ?= $(APP_NAME)
 CGO_ENABLED ?= 1
 
 GO ?= go
+NPM ?= npm
 DOCKER ?= docker
 DOCKER_IMAGE ?= $(APP_NAME):$(APP_VERSION)
 DOCKER_PLATFORM ?= linux/$(shell $(GO) env GOARCH)
@@ -12,14 +13,15 @@ DOCKER_BUILD_OUTPUT ?= --load
 
 LDFLAGS := -s -w -X main.AppVersion=$(APP_VERSION)
 
-.PHONY: help run build test check docker-build up down logs clean
+.PHONY: help frontend-deps frontend-build frontend-dev run build test check docker-build up down logs clean
 
 help:
 	@echo "Targets:"
 	@echo "  make run           Run app locally"
 	@echo "  make build         Build local binary"
+	@echo "  make frontend-dev  Run Vite dev server"
 	@echo "  make test          Run Go tests"
-	@echo "  make check         Run tests and JS syntax check"
+	@echo "  make check         Build frontend and run Go tests"
 	@echo "  make docker-build  Build Docker image"
 	@echo "  make up            Build and run Docker container"
 	@echo "  make down          Stop Docker container"
@@ -27,17 +29,25 @@ help:
 	@echo "  make clean         Remove local build output"
 	@echo "Version: $(APP_VERSION)"
 
-run:
-	$(GO) run -ldflags "$(LDFLAGS)" ./cmd/$(APP_NAME)
+frontend-deps:
+	$(NPM) install --prefix web
 
-build:
-	CGO_ENABLED=$(CGO_ENABLED) $(GO) build -trimpath -ldflags "$(LDFLAGS)" -o ./bin/$(APP_NAME) ./cmd/$(APP_NAME)
+frontend-build: frontend-deps
+	$(NPM) run build --prefix web
 
-test:
-	$(GO) test ./...
+frontend-dev: frontend-deps
+	$(NPM) run dev --prefix web
+
+run: frontend-build
+	$(GO) -C backend run -ldflags "$(LDFLAGS)" ./cmd/$(APP_NAME)
+
+build: frontend-build
+	CGO_ENABLED=$(CGO_ENABLED) $(GO) -C backend build -trimpath -ldflags "$(LDFLAGS)" -o ../bin/$(APP_NAME) ./cmd/$(APP_NAME)
+
+test: frontend-build
+	$(GO) -C backend test ./...
 
 check: test
-	node --check web/static/app.js
 
 docker-build:
 	$(DOCKER) buildx build \
@@ -59,4 +69,4 @@ logs:
 	$(DOCKER) logs -f $(CONTAINER_NAME)
 
 clean:
-	rm -rf ./bin
+	rm -rf ./bin ./backend/web/dist

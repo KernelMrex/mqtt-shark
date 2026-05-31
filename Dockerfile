@@ -1,5 +1,15 @@
 # syntax=docker/dockerfile:1.7
 
+FROM --platform=$BUILDPLATFORM node:24-alpine AS frontend
+
+WORKDIR /src/web
+
+COPY web/package*.json ./
+RUN npm ci
+
+COPY web ./
+RUN npm run build
+
 FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS build
 
 ARG BUILDARCH
@@ -22,14 +32,13 @@ RUN set -eux; \
       | tar -xJ --strip-components=1 -C /usr/local/zig; \
     ln -s /usr/local/zig/zig /usr/local/bin/zig
 
-WORKDIR /src
+WORKDIR /src/backend
 
-COPY go.mod go.sum ./
+COPY backend/go.mod backend/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 
-COPY cmd ./cmd
-COPY internal ./internal
-COPY web ./web
+COPY backend ./
+COPY --from=frontend /src/backend/web/dist ./web/dist
 RUN --mount=type=cache,target=/root/.cache/go-build \
     set -eux; \
     case "${TARGETOS}/${TARGETARCH}${TARGETVARIANT}" in \

@@ -5,11 +5,11 @@ import (
 	"io/fs"
 )
 
-//go:embed static/*
+//go:embed dist
 var staticFiles embed.FS
 
 func Static() fs.FS {
-	publicRoot, err := fs.Sub(staticFiles, "static")
+	publicRoot, err := fs.Sub(staticFiles, "dist")
 	if err != nil {
 		panic(err)
 	}

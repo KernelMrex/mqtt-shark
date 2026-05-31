@@ -30,6 +30,7 @@ func (c *Client) Connect() error {
 		SetClientID(c.config.ClientID).
 		SetCleanSession(c.config.Clean).
 		SetAutoReconnect(true).
+		SetOrderMatters(false).
 		SetConnectRetry(false).
 		SetConnectTimeout(8 * time.Second).
 		SetKeepAlive(30 * time.Second).
