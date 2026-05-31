@@ -1,4 +1,5 @@
-import { buildTopicTree, messagesForTopic, sortTopicNodes } from "../utils/topic";
+import { countMessagesForTopic } from "../model/messageModel";
+import { buildTopicTree, sortTopicNodes } from "../utils/topic";
 
 const topicMetaLabel = (count, subscribed) => {
   return subscribed ? `${count} msg \u00b7 subscribed` : `${count} msg`;
@@ -138,7 +139,7 @@ const TopicsPanel = ({
       <TopicButton
         topic="all"
         label="All topics"
-        count={state.messages.length}
+        count={state.totalMessageCount}
         subscribed={false}
         activeTopic={state.activeTopic}
         onSelect={onSelectTopic}
@@ -149,7 +150,7 @@ const TopicsPanel = ({
           key={topic}
           topic={topic}
           label={`Filter: ${topic}`}
-          count={messagesForTopic(state, topic).length}
+          count={countMessagesForTopic(state, topic)}
           subscribed
           activeTopic={state.activeTopic}
           onSelect={onSelectTopic}

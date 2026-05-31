@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { initialSession, visibleMessages } from "../constants/session";
+import {
+  countMessagesForTopic,
+  isSelectedMessageOutside,
+  messagesForTopic
+} from "../model/messageModel";
 import { brokerURLFromForm } from "../utils/broker";
 import { createMessageId } from "../utils/message";
 import { formatPayload } from "../utils/payload";
 import {
   getDiscoveredTopics,
-  isWildcardTopic,
-  messageMatchesTopic,
-  messagesForTopic
+  isWildcardTopic
 } from "../utils/topic";
 import { getConnectedSession, sessionReducer } from "./sessionReducer";
 import { useReconnectLoop } from "./useReconnectLoop";
@@ -217,9 +220,7 @@ export const useMqttSession = () => {
 
   const activeMessages = useMemo(() => messagesForTopic(state), [state]);
   const latestMessages = activeMessages.slice(0, visibleMessages);
-  const selectedOutsideLatest = state.selectedMessage
-    && messageMatchesTopic(state.activeTopic, state.selectedMessage)
-    && !latestMessages.some((message) => message.id === state.selectedMessage.id);
+  const selectedOutsideLatest = isSelectedMessageOutside(state, latestMessages);
   const visibleHistory = selectedOutsideLatest ? [state.selectedMessage, ...latestMessages] : latestMessages;
   const discoveredTopics = useMemo(() => getDiscoveredTopics(state), [state]);
   const wildcardSubscriptions = state.subscriptions
@@ -324,6 +325,7 @@ export const useMqttSession = () => {
     appFeedbackIsError,
     reconnectMessage: reconnect.reconnectMessage,
     reconnectDetail: reconnect.reconnectDetail,
+    activeMessageCount: countMessagesForTopic(state),
     latestMessages,
     visibleHistory,
     selectedOutsideLatest,

@@ -1,5 +1,5 @@
-export const maxHistory = 500;
-export const visibleMessages = 20;
+export const maxHistory = 20;
+export const visibleMessages = maxHistory;
 
 export const initialSession = {
   connected: false,
@@ -22,5 +22,8 @@ export const initialSession = {
   restoringTopics: [],
   discoveredTopics: [],
   expandedTopicNodes: [],
-  messages: []
+  messageCountsByTopic: {},
+  totalMessageCount: 0,
+  messages: [],
+  messagesByTopic: {}
 };

@@ -1,12 +1,15 @@
-import { initialSession, maxHistory } from "../constants/session";
+import {
+  appendMessageToStore,
+  messagesForTopic
+} from "../model/messageModel";
 import {
   expandTopicAncestors,
   isWildcardTopic,
   messageMatchesTopic,
-  messagesForTopic,
   unique,
   without
 } from "../utils/topic";
+import { initialSession } from "../constants/session";
 
 export const getConnectedSession = (state) => ({
   ...state,
@@ -81,14 +84,14 @@ const applySubscriptionChange = (state, { topic, subscribed }) => {
 };
 
 const addBrokerMessage = (state, message) => {
-  const messages = [message, ...state.messages].slice(0, maxHistory);
+  const messageStore = appendMessageToStore(state, message);
   const shouldSelect = !state.selectedMessageId && messageMatchesTopic(state.activeTopic, message);
 
   return {
     ...state,
     discoveredTopics: unique([...state.discoveredTopics, message.topic]),
     expandedTopicNodes: expandTopicAncestors(state.expandedTopicNodes, message.topic),
-    messages,
+    ...messageStore,
     selectedMessage: shouldSelect ? message : state.selectedMessage,
     selectedMessageId: shouldSelect ? message.id : state.selectedMessageId
   };
@@ -234,9 +237,12 @@ export const sessionReducer = (state = initialSession, action) => {
     case "messagesCleared":
       return {
         ...state,
+        messageCountsByTopic: {},
         messages: [],
+        messagesByTopic: {},
         selectedMessageId: null,
-        selectedMessage: null
+        selectedMessage: null,
+        totalMessageCount: 0
       };
 
     case "messageSelected":

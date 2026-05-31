@@ -13,6 +13,7 @@ function App() {
     state,
     status,
     actions,
+    activeMessageCount,
     appFeedback,
     appFeedbackIsError,
     connectFeedback,
@@ -64,6 +65,7 @@ function App() {
         />
 
         <MessagesPanel
+          activeMessageCount={activeMessageCount}
           latestMessages={latestMessages}
           visibleHistory={visibleHistory}
           selectedMessage={state.selectedMessage}

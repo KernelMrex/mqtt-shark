@@ -21,6 +21,7 @@ const MessageCard = ({ message, selected, pinned, onSelect }) => (
 );
 
 const MessagesPanel = ({
+  activeMessageCount,
   latestMessages,
   visibleHistory,
   selectedMessage,
@@ -38,7 +39,7 @@ const MessagesPanel = ({
         <p className="history-meta">
           {selectedOutsideLatest
             ? `Selected + ${latestMessages.length} of latest ${visibleMessages} shown`
-            : `${latestMessages.length} of latest ${visibleMessages} shown`}
+            : `${latestMessages.length} of ${activeMessageCount} total shown`}
         </p>
       </div>
       <button type="button" className="secondary compact" onClick={onClearMessages}>

@@ -39,10 +39,6 @@ export const messageMatchesTopic = (activeTopic, message) => {
   return message.topic === activeTopic;
 };
 
-export const messagesForTopic = (state, topic = state.activeTopic) => {
-  return state.messages.filter((message) => messageMatchesTopic(topic, message));
-};
-
 export const expandTopicAncestors = (expandedTopicNodes, topic) => {
   const segments = topic.split("/");
   const nodes = [...expandedTopicNodes];
@@ -54,24 +50,13 @@ export const expandTopicAncestors = (expandedTopicNodes, topic) => {
   return unique(nodes);
 };
 
-export const getMessageCountsByTopic = (messages) => {
-  const topics = new Map();
-
-  for (const message of messages) {
-    topics.set(message.topic, (topics.get(message.topic) || 0) + 1);
-  }
-
-  return topics;
-};
-
 export const getDiscoveredTopics = (state) => {
-  const messageCounts = getMessageCountsByTopic(state.messages);
   const topics = new Map();
 
   for (const topic of state.discoveredTopics) {
     topics.set(topic, {
       topic,
-      count: messageCounts.get(topic) || 0,
+      count: state.messageCountsByTopic[topic] || 0,
       subscribed: state.subscriptions.includes(topic)
     });
   }
@@ -83,7 +68,7 @@ export const getDiscoveredTopics = (state) => {
 
     topics.set(topic, {
       topic,
-      count: messageCounts.get(topic) || 0,
+      count: state.messageCountsByTopic[topic] || 0,
       subscribed: true
     });
   }
