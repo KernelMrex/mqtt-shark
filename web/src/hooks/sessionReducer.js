@@ -1,0 +1,252 @@
+import { initialSession, maxHistory } from "../constants/session";
+import {
+  expandTopicAncestors,
+  isWildcardTopic,
+  messageMatchesTopic,
+  messagesForTopic,
+  unique,
+  without
+} from "../utils/topic";
+
+export const getConnectedSession = (state) => ({
+  ...state,
+  connected: true,
+  broker: state.pendingBroker || state.broker,
+  pendingBroker: null,
+  reconnectActive: false,
+  reconnectAttemptInFlight: false,
+  reconnectNextAt: null
+});
+
+const confirmRestoredSubscription = (state, topic) => ({
+  ...state,
+  restoringTopics: without(state.restoringTopics, topic),
+  subscriptions: topic !== "#" ? unique([...state.subscriptions, topic]) : state.subscriptions
+});
+
+const applyDiscoverySubscription = (state, subscribed) => {
+  const pendingSubscriptionQoS = { ...state.pendingSubscriptionQoS };
+  delete pendingSubscriptionQoS["#"];
+
+  return {
+    ...state,
+    discovering: subscribed,
+    pendingDiscoveryAction: null,
+    pendingSubscriptionQoS
+  };
+};
+
+const applySubscriptionChange = (state, { topic, subscribed }) => {
+  const subscriptionQoS = { ...state.subscriptionQoS };
+  const pendingSubscriptionQoS = { ...state.pendingSubscriptionQoS };
+  let subscriptions = state.subscriptions;
+  let discoveredTopics = state.discoveredTopics;
+  let activeTopic = state.activeTopic;
+  let selectedMessage = state.selectedMessage;
+  let selectedMessageId = state.selectedMessageId;
+
+  if (subscribed) {
+    subscriptions = unique([...subscriptions, topic]);
+    subscriptionQoS[topic] = pendingSubscriptionQoS[topic] ?? 0;
+    delete pendingSubscriptionQoS[topic];
+
+    if (!isWildcardTopic(topic)) {
+      discoveredTopics = unique([...discoveredTopics, topic]);
+      activeTopic = topic;
+      selectedMessage = messagesForTopic({ ...state, activeTopic }, activeTopic)[0] || null;
+      selectedMessageId = selectedMessage?.id || null;
+    }
+  } else {
+    subscriptions = without(subscriptions, topic);
+    delete subscriptionQoS[topic];
+    delete pendingSubscriptionQoS[topic];
+
+    if (activeTopic === topic) {
+      activeTopic = "all";
+      selectedMessage = messagesForTopic({ ...state, activeTopic }, activeTopic)[0] || null;
+      selectedMessageId = selectedMessage?.id || null;
+    }
+  }
+
+  return {
+    ...state,
+    subscriptions,
+    subscriptionQoS,
+    pendingSubscriptionQoS,
+    discoveredTopics,
+    activeTopic,
+    selectedMessage,
+    selectedMessageId
+  };
+};
+
+const addBrokerMessage = (state, message) => {
+  const messages = [message, ...state.messages].slice(0, maxHistory);
+  const shouldSelect = !state.selectedMessageId && messageMatchesTopic(state.activeTopic, message);
+
+  return {
+    ...state,
+    discoveredTopics: unique([...state.discoveredTopics, message.topic]),
+    expandedTopicNodes: expandTopicAncestors(state.expandedTopicNodes, message.topic),
+    messages,
+    selectedMessage: shouldSelect ? message : state.selectedMessage,
+    selectedMessageId: shouldSelect ? message.id : state.selectedMessageId
+  };
+};
+
+export const sessionReducer = (state = initialSession, action) => {
+  switch (action.type) {
+    case "resetSession":
+      return {
+        ...initialSession,
+        lastConnectCommand: state.lastConnectCommand
+      };
+
+    case "connectRequested":
+      return {
+        ...state,
+        pendingBroker: action.broker,
+        lastConnectCommand: action.command
+      };
+
+    case "brokerConnected":
+      return getConnectedSession(state);
+
+    case "manualDisconnectCompleted":
+      return {
+        ...initialSession,
+        lastConnectCommand: null
+      };
+
+    case "manualDisconnectRequested":
+      return {
+        ...state,
+        manualDisconnecting: true
+      };
+
+    case "connectingStatusReceived":
+      return {
+        ...state,
+        reconnectAttemptInFlight: state.reconnectActive ? true : state.reconnectAttemptInFlight
+      };
+
+    case "reconnectStarted":
+      return {
+        ...state,
+        reconnectActive: true
+      };
+
+    case "reconnectStopped":
+      return {
+        ...state,
+        reconnectActive: false,
+        reconnectAttemptInFlight: false,
+        reconnectNextAt: null
+      };
+
+    case "reconnectScheduled":
+      return {
+        ...state,
+        reconnectNextAt: action.reconnectNextAt,
+        reconnectAttemptInFlight: false
+      };
+
+    case "reconnectAttemptStarted":
+      return {
+        ...state,
+        reconnectAttemptInFlight: true,
+        reconnectNextAt: null
+      };
+
+    case "restoreTopicsQueued":
+      return {
+        ...state,
+        restoringTopics: unique([...state.restoringTopics, ...action.topics])
+      };
+
+    case "restoreSubscriptionConfirmed":
+      return confirmRestoredSubscription(state, action.topic);
+
+    case "discoveryActionFailed":
+      return {
+        ...state,
+        pendingDiscoveryAction: null
+      };
+
+    case "discoverySubscriptionChanged":
+      return applyDiscoverySubscription(state, action.subscribed);
+
+    case "subscriptionChanged":
+      return applySubscriptionChange(state, action);
+
+    case "brokerMessageReceived":
+      return addBrokerMessage(state, action.message);
+
+    case "topicSelected": {
+      const selectedMessage = messagesForTopic({ ...state, activeTopic: action.topic }, action.topic)[0] || null;
+      return {
+        ...state,
+        activeTopic: action.topic,
+        selectedMessage,
+        selectedMessageId: selectedMessage?.id || null
+      };
+    }
+
+    case "topicToggled":
+      return {
+        ...state,
+        expandedTopicNodes: state.expandedTopicNodes.includes(action.key)
+          ? without(state.expandedTopicNodes, action.key)
+          : [...state.expandedTopicNodes, action.key]
+      };
+
+    case "subscriptionRequested":
+      return {
+        ...state,
+        pendingSubscriptionQoS: {
+          ...state.pendingSubscriptionQoS,
+          [action.topic]: action.qos
+        }
+      };
+
+    case "discoveryStartRequested":
+      return {
+        ...state,
+        pendingDiscoveryAction: "start",
+        pendingSubscriptionQoS: {
+          ...state.pendingSubscriptionQoS,
+          "#": 0
+        }
+      };
+
+    case "discoveryStopRequested":
+      return {
+        ...state,
+        pendingDiscoveryAction: "stop"
+      };
+
+    case "payloadFormatChanged":
+      return {
+        ...state,
+        payloadFormat: action.payloadFormat
+      };
+
+    case "messagesCleared":
+      return {
+        ...state,
+        messages: [],
+        selectedMessageId: null,
+        selectedMessage: null
+      };
+
+    case "messageSelected":
+      return {
+        ...state,
+        selectedMessage: action.message,
+        selectedMessageId: action.message.id
+      };
+
+    default:
+      return state;
+  }
+};
