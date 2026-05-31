@@ -108,12 +108,16 @@ export const sessionReducer = (state = initialSession, action) => {
     case "connectRequested":
       return {
         ...state,
+        autoDiscoveryOnConnect: action.autoDiscoveryOnConnect,
         pendingBroker: action.broker,
         lastConnectCommand: action.command
       };
 
     case "brokerConnected":
-      return getConnectedSession(state);
+      return {
+        ...getConnectedSession(state),
+        autoDiscoveryOnConnect: false
+      };
 
     case "manualDisconnectCompleted":
       return {

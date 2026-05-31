@@ -20,6 +20,13 @@ const ConnectScreen = ({
           Port
           <input name="port" type="number" min="1" max="65535" defaultValue="1883" inputMode="numeric" required />
         </label>
+        <label className="checkbox-field">
+          <input name="autoDiscovery" type="checkbox" defaultChecked />
+          <span>
+            Auto-discover topics
+            <small>Subscribe to # after connect</small>
+          </span>
+        </label>
         <button type="submit" disabled={status === "connecting"}>Connect</button>
         <p className={`feedback${feedbackIsError ? " feedback-error" : ""}`} role="status">{connectFeedback}</p>
       </form>

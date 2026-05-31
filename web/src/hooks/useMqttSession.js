@@ -83,6 +83,7 @@ export const useMqttSession = () => {
     if (nextStatus === "connected") {
       const wasReconnecting = stateRef.current.reconnectActive;
       const connectedSnapshot = getConnectedSession(stateRef.current);
+      const shouldStartDiscovery = stateRef.current.autoDiscoveryOnConnect && !wasReconnecting;
 
       dispatch({ type: "brokerConnected" });
 
@@ -90,6 +91,11 @@ export const useMqttSession = () => {
         window.setTimeout(() => restoreSubscriptions(connectedSnapshot), 0);
         setAppFeedback("Reconnected to broker");
         setAppFeedbackIsError(false);
+      } else if (shouldStartDiscovery) {
+        window.setTimeout(() => {
+          dispatch({ type: "discoveryStartRequested" });
+          send({ type: "subscribe", topic: "#", qos: 0 });
+        }, 0);
       }
 
       reconnect.stopReconnectLoop();
@@ -273,9 +279,10 @@ export const useMqttSession = () => {
       url: broker.url,
       clean: true
     };
+    const autoDiscoveryOnConnect = event.currentTarget.elements.autoDiscovery.checked;
 
     resetSession();
-    dispatch({ type: "connectRequested", broker, command });
+    dispatch({ type: "connectRequested", broker, command, autoDiscoveryOnConnect });
     send(command);
   };
 

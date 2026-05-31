@@ -10,6 +10,7 @@ export const initialSession = {
   reconnectAttemptInFlight: false,
   reconnectNextAt: null,
   manualDisconnecting: false,
+  autoDiscoveryOnConnect: false,
   activeTopic: "all",
   payloadFormat: "auto",
   selectedMessageId: null,
