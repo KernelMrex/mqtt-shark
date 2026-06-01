@@ -7,11 +7,12 @@ MQTT Shark is a lightweight web MQTT explorer for debugging broker traffic from 
 
 It ships as a single Docker image with a Go backend, a React frontend, and an embedded production build, so the same artifact can run locally, in a lab, or next to your MQTT infrastructure.
 
-## Screenshots
+## Demo
 
-| Topic explorer | Payload inspection |
-| --- | --- |
-| <img src="docs/img/screenshot-1.png" alt="MQTT Shark connection and topic explorer" width="420"> | <img src="docs/img/screenshot-2.png" alt="MQTT Shark message payload inspection" width="420"> |
+|  |  |
+| :---: | :---: |
+| [<img src="docs/img/screenshot-1.png" alt="MQTT Shark broker connection screen" width="400">](docs/img/screenshot-1.png) | [<img src="docs/img/screenshot-2.png" alt="MQTT Shark broker content explorer" width="400">](docs/img/screenshot-2.png) |
+| Broker connection | Broker content explorer |
 
 ## Why MQTT Shark
 
