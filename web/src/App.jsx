@@ -4,11 +4,11 @@ import PayloadPanel from "./components/PayloadPanel";
 import ReconnectModal from "./components/ReconnectModal";
 import Topbar from "./components/Topbar";
 import TopicsPanel from "./components/TopicsPanel";
-import { useAppVersion } from "./hooks/useAppVersion";
+import { useAppInfo } from "./hooks/useAppInfo";
 import { useMqttSession } from "./hooks/useMqttSession";
 
 function App() {
-  const appVersion = useAppVersion();
+  const { appVersion, defaultBrokerHost } = useAppInfo();
   const {
     state,
     status,
@@ -32,6 +32,7 @@ function App() {
     return (
       <ConnectScreen
         appVersion={appVersion}
+        defaultBrokerHost={defaultBrokerHost}
         connectFeedback={connectFeedback}
         feedbackIsError={feedbackIsError}
         status={status}

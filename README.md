@@ -25,6 +25,14 @@ docker run --rm -p 8080:8080 ghcr.io/kernelmrex/mqtt-shark:latest
 
 Open http://localhost:8080 and connect to your broker.
 
+Optionally prefill the broker host field from the runtime environment:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e MQTT_SHARK_BROKER_HOST=192.168.1.10 \
+  ghcr.io/kernelmrex/mqtt-shark:latest
+```
+
 Or build and run the local Docker image:
 
 ```bash

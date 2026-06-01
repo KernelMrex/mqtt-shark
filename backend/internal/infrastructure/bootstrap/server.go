@@ -14,10 +14,11 @@ import (
 )
 
 type Config struct {
-	Addr     string
-	Version  string
-	Logger   *log.Logger
-	PublicFS fs.FS
+	Addr              string
+	Version           string
+	DefaultBrokerHost string
+	Logger            *log.Logger
+	PublicFS          fs.FS
 }
 
 func New(config Config) (*http.Server, error) {
@@ -44,8 +45,9 @@ func New(config Config) (*http.Server, error) {
 	mux.HandleFunc("/api/info", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(map[string]string{
-			"name":    "mqtt-shark",
-			"version": version,
+			"name":              "mqtt-shark",
+			"version":           version,
+			"defaultBrokerHost": config.DefaultBrokerHost,
 		})
 	})
 	mux.Handle("/", http.FileServer(http.FS(config.PublicFS)))

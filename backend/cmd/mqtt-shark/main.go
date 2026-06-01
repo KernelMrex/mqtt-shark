@@ -17,10 +17,11 @@ func main() {
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 
 	server, err := bootstrap.New(bootstrap.Config{
-		Addr:     ":" + env("PORT", "8080"),
-		Version:  AppVersion,
-		Logger:   logger,
-		PublicFS: web.Static(),
+		Addr:              ":" + env("PORT", "8080"),
+		Version:           AppVersion,
+		DefaultBrokerHost: env("MQTT_SHARK_BROKER_HOST", ""),
+		Logger:            logger,
+		PublicFS:          web.Static(),
 	})
 	if err != nil {
 		logger.Fatalf("configure server: %v", err)
