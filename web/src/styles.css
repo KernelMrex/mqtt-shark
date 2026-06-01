@@ -381,17 +381,48 @@ button:focus-visible {
   white-space: nowrap;
 }
 
+.subscribe-area {
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.subscribe-toggle {
+  width: 100%;
+}
+
 .subscribe-form {
   display: grid;
   gap: 10px;
-  padding: 16px;
-  border-bottom: 1px solid var(--line);
+}
+
+.subscribe-form-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
 }
 
 .subscribe-actions {
   display: grid;
   grid-template-columns: minmax(90px, 0.8fr) minmax(120px, 1fr);
   gap: 10px;
+}
+
+.subscribe-close {
+  width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.subscribe-close:hover {
+  border-color: var(--danger);
+  background: rgba(255, 107, 107, 0.1);
+  color: var(--danger);
 }
 
 .topics-list {

@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { countMessagesForTopic } from "../model/messageModel";
 import { buildTopicTree, sortTopicNodes } from "../utils/topic";
 
@@ -108,72 +110,102 @@ const TopicsPanel = ({
   onUnsubscribe,
   onStartDiscovery,
   onStopDiscovery
-}) => (
-  <aside className="panel topics-panel" aria-labelledby="topics-title">
-    <div className="panel-heading">
-      <div>
-        <h2 id="topics-title">Discovered topics</h2>
-        <p className="topics-meta">Observed through # discovery</p>
+}) => {
+  const [showSubscribeForm, setShowSubscribeForm] = useState(false);
+
+  const handleSubscribe = (event) => {
+    onSubscribe(event);
+    setShowSubscribeForm(false);
+  };
+
+  return (
+    <aside className="panel topics-panel" aria-labelledby="topics-title">
+      <div className="panel-heading">
+        <div>
+          <h2 id="topics-title">Discovered topics</h2>
+          <p className="topics-meta">Observed through # discovery</p>
+        </div>
+        <button
+          type="button"
+          className={`secondary compact${state.discovering ? " is-active" : ""}`}
+          disabled={Boolean(state.pendingDiscoveryAction)}
+          onClick={state.discovering ? onStopDiscovery : onStartDiscovery}
+        >
+          {state.discovering ? "Stop" : "Discover"}
+        </button>
       </div>
-      <button
-        type="button"
-        className={`secondary compact${state.discovering ? " is-active" : ""}`}
-        disabled={Boolean(state.pendingDiscoveryAction)}
-        onClick={state.discovering ? onStopDiscovery : onStartDiscovery}
-      >
-        {state.discovering ? "Stop" : "Discover"}
-      </button>
-    </div>
-    <form className="subscribe-form" onSubmit={onSubscribe}>
-      <input name="topic" placeholder="sensors/#" required />
-      <div className="subscribe-actions">
-        <select name="qos" aria-label="Subscribe QoS" defaultValue="0">
-          <option value="0">QoS 0</option>
-          <option value="1">QoS 1</option>
-          <option value="2">QoS 2</option>
-        </select>
-        <button type="submit">Subscribe</button>
+
+      <div className="subscribe-area">
+        {showSubscribeForm ? (
+          <form className="subscribe-form" onSubmit={handleSubscribe}>
+            <div className="subscribe-form-top">
+              <input name="topic" placeholder="sensors/#" required />
+              <button
+                type="button"
+                className="subscribe-close"
+                aria-label="Cancel adding topic"
+                title="Cancel"
+                onClick={() => setShowSubscribeForm(false)}
+              >
+                {"\u00d7"}
+              </button>
+            </div>
+            <div className="subscribe-actions">
+              <select name="qos" aria-label="Subscribe QoS" defaultValue="0">
+                <option value="0">QoS 0</option>
+                <option value="1">QoS 1</option>
+                <option value="2">QoS 2</option>
+              </select>
+              <button type="submit">Add Subscription</button>
+            </div>
+          </form>
+        ) : (
+          <button type="button" className="secondary subscribe-toggle" onClick={() => setShowSubscribeForm(true)}>
+            Add Topic
+          </button>
+        )}
       </div>
-    </form>
-    <ul className="topics-list">
-      <TopicButton
-        topic="all"
-        label="All topics"
-        count={state.totalMessageCount}
-        subscribed={false}
-        activeTopic={state.activeTopic}
-        onSelect={onSelectTopic}
-        onUnsubscribe={onUnsubscribe}
-      />
-      {wildcardSubscriptions.map((topic) => (
+
+      <ul className="topics-list">
         <TopicButton
-          key={topic}
-          topic={topic}
-          label={`Filter: ${topic}`}
-          count={countMessagesForTopic(state, topic)}
-          subscribed
+          topic="all"
+          label="All topics"
+          count={state.totalMessageCount}
+          subscribed={false}
           activeTopic={state.activeTopic}
           onSelect={onSelectTopic}
           onUnsubscribe={onUnsubscribe}
         />
-      ))}
-      {discoveredTopics.length === 0 ? (
-        <li className="topics-empty">
-          {state.discovering ? "Waiting for broker messages" : "Start discovery to observe topics"}
-        </li>
-      ) : buildTopicTree(discoveredTopics).map((node) => (
-        <TopicTreeItem
-          key={node.key}
-          node={node}
-          depth={0}
-          state={state}
-          onToggle={onToggleTopic}
-          onSelect={onSelectTopic}
-          onUnsubscribe={onUnsubscribe}
-        />
-      ))}
-    </ul>
-  </aside>
-);
+        {wildcardSubscriptions.map((topic) => (
+          <TopicButton
+            key={topic}
+            topic={topic}
+            label={`Filter: ${topic}`}
+            count={countMessagesForTopic(state, topic)}
+            subscribed
+            activeTopic={state.activeTopic}
+            onSelect={onSelectTopic}
+            onUnsubscribe={onUnsubscribe}
+          />
+        ))}
+        {discoveredTopics.length === 0 ? (
+          <li className="topics-empty">
+            {state.discovering ? "Waiting for broker messages" : "Start discovery to observe topics"}
+          </li>
+        ) : buildTopicTree(discoveredTopics).map((node) => (
+          <TopicTreeItem
+            key={node.key}
+            node={node}
+            depth={0}
+            state={state}
+            onToggle={onToggleTopic}
+            onSelect={onSelectTopic}
+            onUnsubscribe={onUnsubscribe}
+          />
+        ))}
+      </ul>
+    </aside>
+  );
+};
 
 export default TopicsPanel;
