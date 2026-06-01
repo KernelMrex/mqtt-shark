@@ -1,9 +1,30 @@
+import Prism from "prismjs";
+import "prismjs/components/prism-json";
+
 const MetaItem = ({ label, value }) => (
   <span>
     <strong>{label}</strong>
     <span>{value}</span>
   </span>
 );
+
+const HighlightedPayload = ({ formattedPayload }) => {
+  if (formattedPayload.label !== "JSON") {
+    return (
+      <pre className="payload-viewer">
+        <code>{formattedPayload.body}</code>
+      </pre>
+    );
+  }
+
+  const highlightedPayload = Prism.highlight(formattedPayload.body, Prism.languages.json, "json");
+
+  return (
+    <pre className="payload-viewer language-json">
+      <code className="language-json" dangerouslySetInnerHTML={{ __html: highlightedPayload }} />
+    </pre>
+  );
+};
 
 const PayloadPanel = ({ selectedMessage, formattedPayload, payloadFormat, onPayloadFormatChange }) => (
   <section className="panel payload-panel" aria-labelledby="payload-title">
@@ -35,7 +56,7 @@ const PayloadPanel = ({ selectedMessage, formattedPayload, payloadFormat, onPayl
           <MetaItem label="Payload" value={`${new Blob([selectedMessage.payload || ""]).size} B`} />
           <MetaItem label="Format" value={formattedPayload.label} />
         </div>
-        <pre className="payload-viewer">{formattedPayload.body}</pre>
+        <HighlightedPayload formattedPayload={formattedPayload} />
       </>
     ) : (
       <div className="payload-empty">Select a message in Messages on the right</div>

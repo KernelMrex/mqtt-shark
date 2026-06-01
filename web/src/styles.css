@@ -585,6 +585,32 @@ button:focus-visible {
   word-break: normal;
 }
 
+.payload-viewer code {
+  font: inherit;
+}
+
+.payload-viewer .token.property {
+  color: #7dd3fc;
+}
+
+.payload-viewer .token.string {
+  color: #86efac;
+}
+
+.payload-viewer .token.number {
+  color: #fbbf24;
+}
+
+.payload-viewer .token.boolean,
+.payload-viewer .token.null {
+  color: #c4b5fd;
+}
+
+.payload-viewer .token.punctuation,
+.payload-viewer .token.operator {
+  color: #94a3b8;
+}
+
 .payload-empty {
   display: grid;
   flex: 1;
