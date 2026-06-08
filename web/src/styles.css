@@ -149,7 +149,8 @@ button:focus-visible {
 }
 
 .connect-form label,
-.subscribe-form {
+.subscribe-form,
+.publish-form {
   color: var(--muted);
   font-size: 13px;
   font-weight: 800;
@@ -308,6 +309,13 @@ button:focus-visible {
   border-bottom: 1px solid var(--line);
 }
 
+.panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .panel h2 {
   font-size: 17px;
 }
@@ -423,6 +431,49 @@ button:focus-visible {
   border-color: var(--danger);
   background: rgba(255, 107, 107, 0.1);
   color: var(--danger);
+}
+
+.publish-form {
+  display: grid;
+  gap: 10px;
+}
+
+.publish-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.publish-form textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.publish-modal {
+  width: min(100%, 560px);
+}
+
+.publish-modal .publish-form textarea {
+  min-height: 220px;
+}
+
+.publish-actions {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.retain-field {
+  grid-template-columns: auto auto;
+  justify-content: start;
+  color: var(--text);
+}
+
+.retain-field input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
 }
 
 .topics-list {

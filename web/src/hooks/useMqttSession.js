@@ -199,6 +199,12 @@ export const useMqttSession = () => {
 
     if (message.type === "subscription") {
       handleSubscriptionMessage(message);
+      return;
+    }
+
+    if (message.type === "published") {
+      setAppFeedback(`Published to ${message.topic}`);
+      setAppFeedbackIsError(false);
     }
   };
 
@@ -251,6 +257,12 @@ export const useMqttSession = () => {
 
   const unsubscribe = (topic) => {
     send({ type: "unsubscribe", topic });
+  };
+
+  const publishMessage = ({ topic, payload, qos, retain }) => {
+    setAppFeedback(`Publishing to ${topic}...`);
+    setAppFeedbackIsError(false);
+    send({ type: "publish", topic, payload, qos, retain });
   };
 
   const startTopicDiscovery = () => {
@@ -346,6 +358,7 @@ export const useMqttSession = () => {
       disconnect,
       selectMessage,
       selectTopic,
+      publishMessage,
       setPayloadFormat,
       startTopicDiscovery,
       stopTopicDiscovery,
