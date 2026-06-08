@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { initialSession, visibleMessages } from "../constants/session";
 import {
-  countMessagesForTopic,
   isSelectedMessageOutside,
   messagesForTopic
 } from "../model/messageModel";
@@ -344,7 +343,6 @@ export const useMqttSession = () => {
     appFeedbackIsError,
     reconnectMessage: reconnect.reconnectMessage,
     reconnectDetail: reconnect.reconnectDetail,
-    activeMessageCount: countMessagesForTopic(state),
     latestMessages,
     visibleHistory,
     selectedOutsideLatest,

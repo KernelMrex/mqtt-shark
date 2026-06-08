@@ -1,7 +1,13 @@
 import { useState } from "react";
 
-import { visibleMessages } from "../constants/session";
+import { maxHistory } from "../constants/session";
 import { isWildcardTopic } from "../utils/topic";
+
+const historyCounter = ({ memoryMessageCount, selectedOutsideLatest }) => {
+  const numerator = selectedOutsideLatest ? `${memoryMessageCount}+1` : String(memoryMessageCount);
+
+  return `${numerator}/${maxHistory}`;
+};
 
 const MessageCard = ({ message, selected, pinned, onSelect }) => (
   <article className={`message-card${pinned ? " is-pinned" : ""}`}>
@@ -91,7 +97,6 @@ const PublishMessageModal = ({ initialTopic, onClose, onPublishMessage }) => {
 
 const MessagesPanel = ({
   activeTopic,
-  activeMessageCount,
   latestMessages,
   visibleHistory,
   selectedMessage,
@@ -112,9 +117,10 @@ const MessagesPanel = ({
         <div>
           <h2 id="messages-title">Messages</h2>
           <p className="history-meta">
-            {selectedOutsideLatest
-              ? `Selected + ${latestMessages.length} of latest ${visibleMessages} shown`
-              : `${latestMessages.length} of ${activeMessageCount} total shown`}
+            {historyCounter({
+              memoryMessageCount: latestMessages.length,
+              selectedOutsideLatest
+            })}
           </p>
         </div>
         <div className="panel-actions">
