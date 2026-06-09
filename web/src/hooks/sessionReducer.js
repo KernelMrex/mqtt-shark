@@ -21,18 +21,31 @@ export const getConnectedSession = (state) => ({
   reconnectNextAt: null
 });
 
-const confirmRestoredSubscription = (state, topic) => ({
-  ...state,
-  restoringTopics: without(state.restoringTopics, topic),
-  subscriptions: topic !== "#" ? unique([...state.subscriptions, topic]) : state.subscriptions
-});
+const confirmRestoredSubscription = (state, topic) => {
+  const subscriptionQoS = { ...state.subscriptionQoS };
+
+  if (topic === "#") {
+    delete subscriptionQoS["#"];
+  }
+
+  return {
+    ...state,
+    restoringTopics: without(state.restoringTopics, topic),
+    subscriptions: topic !== "#" ? unique([...state.subscriptions, topic]) : without(state.subscriptions, "#"),
+    subscriptionQoS
+  };
+};
 
 const applyDiscoverySubscription = (state, subscribed) => {
+  const subscriptionQoS = { ...state.subscriptionQoS };
   const pendingSubscriptionQoS = { ...state.pendingSubscriptionQoS };
+  delete subscriptionQoS["#"];
   delete pendingSubscriptionQoS["#"];
 
   return {
     ...state,
+    subscriptions: without(state.subscriptions, "#"),
+    subscriptionQoS,
     discovering: subscribed,
     pendingDiscoveryAction: null,
     pendingSubscriptionQoS

@@ -166,7 +166,7 @@ export const useMqttSession = () => {
       return;
     }
 
-    if (message.topic === "#" && current.pendingDiscoveryAction) {
+    if (message.topic === "#") {
       dispatch({ type: "discoverySubscriptionChanged", subscribed: message.subscribed });
       setAppFeedback(message.subscribed ? "Discovering topics through #" : "Stopped topic discovery");
       setAppFeedbackIsError(false);
@@ -232,9 +232,10 @@ export const useMqttSession = () => {
   const activeMessages = useMemo(() => messagesForTopic(state), [state]);
   const latestMessages = activeMessages.slice(0, visibleMessages);
   const selectedOutsideLatest = isSelectedMessageOutside(state, latestMessages);
-  const visibleHistory = selectedOutsideLatest ? [state.selectedMessage, ...latestMessages] : latestMessages;
+  const visibleHistory = latestMessages;
   const discoveredTopics = useMemo(() => getDiscoveredTopics(state), [state]);
   const wildcardSubscriptions = state.subscriptions
+    .filter((topic) => topic !== "#")
     .filter((topic) => isWildcardTopic(topic))
     .sort((left, right) => left.localeCompare(right));
   const formattedPayload = state.selectedMessage

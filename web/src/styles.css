@@ -679,6 +679,10 @@ button:focus-visible {
   padding: 0 16px;
 }
 
+.pinned-message {
+  padding: 12px 12px 0;
+}
+
 .messages {
   display: grid;
   flex: 1;
@@ -714,6 +718,17 @@ button:focus-visible {
 .message-card.is-pinned .message-button {
   border-color: var(--warning);
   background: rgba(230, 180, 80, 0.1);
+}
+
+.message-card.is-selected-copy .message-button {
+  border-color: var(--warning);
+  border-style: dashed;
+  background: var(--surface-strong);
+}
+
+.message-card.is-selected-copy .message-button:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .message-meta {

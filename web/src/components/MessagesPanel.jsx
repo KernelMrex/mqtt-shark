@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { maxHistory } from "../constants/session";
-import { isWildcardTopic } from "../utils/topic";
+import { isWildcardTopic, messageMatchesTopic } from "../utils/topic";
 
 const historyCounter = ({ memoryMessageCount, selectedOutsideLatest }) => {
   const numerator = selectedOutsideLatest ? `${memoryMessageCount}+1` : String(memoryMessageCount);
@@ -9,8 +9,8 @@ const historyCounter = ({ memoryMessageCount, selectedOutsideLatest }) => {
   return `${numerator}/${maxHistory}`;
 };
 
-const MessageCard = ({ message, selected, pinned, onSelect }) => (
-  <article className={`message-card${pinned ? " is-pinned" : ""}`}>
+const MessageCard = ({ message, selected, pinned, selectedCopy, onSelect }) => (
+  <article className={`message-card${pinned ? " is-pinned" : ""}${selectedCopy ? " is-selected-copy" : ""}`}>
     <button
       type="button"
       className={`message-button${selected ? " is-active" : ""}`}
@@ -110,6 +110,7 @@ const MessagesPanel = ({
 }) => {
   const [showPublishModal, setShowPublishModal] = useState(false);
   const suggestedTopic = selectedMessage?.topic || (activeTopic !== "all" && !isWildcardTopic(activeTopic) ? activeTopic : "");
+  const pinnedMessage = selectedMessage && messageMatchesTopic(activeTopic, selectedMessage) ? selectedMessage : null;
 
   return (
     <aside className="panel history-panel" aria-labelledby="messages-title">
@@ -133,18 +134,32 @@ const MessagesPanel = ({
         </div>
       </div>
       <p className={`feedback app-feedback${appFeedbackIsError ? " feedback-error" : ""}`} role="status">{appFeedback}</p>
+      {pinnedMessage ? (
+        <div className="pinned-message">
+          <MessageCard
+            message={pinnedMessage}
+            selected
+            pinned
+            onSelect={onSelectMessage}
+          />
+        </div>
+      ) : null}
       <div className="messages" aria-live="polite">
         {visibleHistory.length === 0 ? (
           <p className="empty-state">No messages yet</p>
-        ) : visibleHistory.map((message) => (
-          <MessageCard
-            key={message.id}
-            message={message}
-            selected={message.id === selectedMessageId}
-            pinned={selectedOutsideLatest && message.id === selectedMessage?.id}
-            onSelect={onSelectMessage}
-          />
-        ))}
+        ) : visibleHistory.map((message) => {
+          const selectedCopy = message.id === selectedMessageId;
+
+          return (
+            <MessageCard
+              key={message.id}
+              message={message}
+              selected={selectedCopy && !pinnedMessage}
+              selectedCopy={selectedCopy}
+              onSelect={onSelectMessage}
+            />
+          );
+        })}
       </div>
       {showPublishModal ? (
         <PublishMessageModal
