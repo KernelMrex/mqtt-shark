@@ -1,24 +1,24 @@
 # Roadmap
 
-## MVP
+## MVP `v0.*.*`
 
-- [ ] Connect to MQTT brokers.
-- [ ] Subscribe and unsubscribe to topics.
-- [ ] Publish messages.
-- [ ] View incoming messages.
-- [ ] Message filtering.
-- [ ] Payload formatting.
-- [ ] Ship as a single Docker image.
+- [x] ~~Connect to MQTT brokers.~~
+- [x] ~~Subscribe and unsubscribe to topics.~~
+- [x] ~~Publish messages.~~
+- [x] ~~View incoming messages.~~
+- [x] ~~Message filtering.~~
+- [x] ~~Payload formatting.~~
+- [x] ~~Ship as a single Docker image.~~
 
-## Next
+## Next `v1.0.0`
 
-- [ ] Publish multi-arch Docker images.
+- [x] ~~Publish multi-arch Docker images.~~
 - [ ] Saved broker profiles.
-- [ ] Basic tests around MQTT session behavior.
+- [x] ~~Basic tests around MQTT session behavior.~~
 - [ ] Authentication for exposed deployments.
 
-## Later
+## Later `v1.*.*`
 
 - [ ] Import and export config.
-- [ ] UI polish for larger message streams.
+- [x] ~~UI polish for larger message streams.~~
 - [ ] Graphical visualization.
