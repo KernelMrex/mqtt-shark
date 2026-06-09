@@ -11,6 +11,7 @@ export const initialSession = {
   reconnectNextAt: null,
   manualDisconnecting: false,
   autoDiscoveryOnConnect: false,
+  autoRotateMessages: false,
   activeTopic: "all",
   payloadFormat: "auto",
   selectedMessageId: null,

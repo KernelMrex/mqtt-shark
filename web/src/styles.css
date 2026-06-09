@@ -76,6 +76,12 @@ button.compact {
   padding: 0 12px;
 }
 
+button.compact.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 input,
 select,
 textarea {
@@ -311,7 +317,13 @@ button:focus-visible {
 
 .panel-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.panel-actions-row {
+  display: flex;
   justify-content: flex-end;
   gap: 8px;
 }

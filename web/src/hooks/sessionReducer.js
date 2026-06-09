@@ -98,7 +98,8 @@ const applySubscriptionChange = (state, { topic, subscribed }) => {
 
 const addBrokerMessage = (state, message) => {
   const messageStore = appendMessageToStore(state, message);
-  const shouldSelect = !state.selectedMessageId && messageMatchesTopic(state.activeTopic, message);
+  const matchesActiveTopic = messageMatchesTopic(state.activeTopic, message);
+  const shouldSelect = matchesActiveTopic && (state.autoRotateMessages || !state.selectedMessageId);
 
   return {
     ...state,
@@ -250,6 +251,17 @@ export const sessionReducer = (state = initialSession, action) => {
         ...state,
         payloadFormat: action.payloadFormat
       };
+
+    case "messageAutoRotateToggled": {
+      const selectedMessage = action.enabled ? messagesForTopic(state)[0] || null : state.selectedMessage;
+
+      return {
+        ...state,
+        autoRotateMessages: action.enabled,
+        selectedMessage,
+        selectedMessageId: action.enabled ? selectedMessage?.id || null : state.selectedMessageId
+      };
+    }
 
     case "messagesCleared":
       return {

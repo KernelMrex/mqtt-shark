@@ -327,6 +327,10 @@ export const useMqttSession = () => {
     dispatch({ type: "payloadFormatChanged", payloadFormat });
   };
 
+  const setAutoRotateMessages = (enabled) => {
+    dispatch({ type: "messageAutoRotateToggled", enabled });
+  };
+
   const clearMessages = () => {
     dispatch({ type: "messagesCleared" });
   };
@@ -358,6 +362,7 @@ export const useMqttSession = () => {
       selectMessage,
       selectTopic,
       publishMessage,
+      setAutoRotateMessages,
       setPayloadFormat,
       startTopicDiscovery,
       stopTopicDiscovery,

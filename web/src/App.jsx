@@ -70,12 +70,14 @@ function App() {
           selectedMessage={state.selectedMessage}
           selectedMessageId={state.selectedMessageId}
           selectedOutsideLatest={selectedOutsideLatest}
+          autoRotateMessages={state.autoRotateMessages}
           activeTopic={state.activeTopic}
           appFeedback={appFeedback}
           appFeedbackIsError={appFeedbackIsError}
           onClearMessages={actions.clearMessages}
           onPublishMessage={actions.publishMessage}
           onSelectMessage={actions.selectMessage}
+          onToggleAutoRotate={actions.setAutoRotateMessages}
         />
       </main>
 

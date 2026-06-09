@@ -102,11 +102,13 @@ const MessagesPanel = ({
   selectedMessage,
   selectedMessageId,
   selectedOutsideLatest,
+  autoRotateMessages,
   appFeedback,
   appFeedbackIsError,
   onClearMessages,
   onPublishMessage,
-  onSelectMessage
+  onSelectMessage,
+  onToggleAutoRotate
 }) => {
   const [showPublishModal, setShowPublishModal] = useState(false);
   const suggestedTopic = selectedMessage?.topic || (activeTopic !== "all" && !isWildcardTopic(activeTopic) ? activeTopic : "");
@@ -125,11 +127,22 @@ const MessagesPanel = ({
           </p>
         </div>
         <div className="panel-actions">
-          <button type="button" className="compact" onClick={() => setShowPublishModal(true)}>
-            Send
-          </button>
-          <button type="button" className="secondary compact" onClick={onClearMessages}>
-            Clear
+          <div className="panel-actions-row">
+            <button type="button" className="compact" onClick={() => setShowPublishModal(true)}>
+              Send
+            </button>
+            <button type="button" className="secondary compact" onClick={onClearMessages}>
+              Clear
+            </button>
+          </div>
+          <button
+            type="button"
+            className={`secondary compact${autoRotateMessages ? " is-active" : ""}`}
+            aria-pressed={autoRotateMessages}
+            title="Auto select the latest message for the active topic"
+            onClick={() => onToggleAutoRotate(!autoRotateMessages)}
+          >
+            Auto Rotate
           </button>
         </div>
       </div>
