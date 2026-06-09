@@ -10,16 +10,19 @@ DOCKER ?= docker
 DOCKER_IMAGE ?= $(APP_NAME):$(APP_VERSION)
 DOCKER_PLATFORM ?= linux/$(shell $(GO) env GOARCH)
 DOCKER_BUILD_OUTPUT ?= --load
+DEV_BROKER_CONTAINER_NAME ?= $(APP_NAME)-dev-broker
+DEV_BROKER_PORT ?= 1883
 
 LDFLAGS := -s -w -X main.AppVersion=$(APP_VERSION)
 
-.PHONY: help frontend-deps frontend-build frontend-dev run build test check docker-build up down logs clean
+.PHONY: help frontend-deps frontend-build frontend-dev dev-broker run build test check docker-build up down logs clean
 
 help:
 	@echo "Targets:"
 	@echo "  make run           Run app locally"
 	@echo "  make build         Build local binary"
 	@echo "  make frontend-dev  Run Vite dev server"
+	@echo "  make dev-broker    Run a local MQTT broker for manual testing"
 	@echo "  make test          Run Go tests"
 	@echo "  make check         Build frontend and run Go tests"
 	@echo "  make docker-build  Build Docker image"
@@ -37,6 +40,11 @@ frontend-build: frontend-deps
 
 frontend-dev: frontend-deps
 	$(NPM) run dev --prefix web
+
+dev-broker:
+	@echo "Starting MQTT broker at mqtt://localhost:$(DEV_BROKER_PORT)"
+	@echo "Press Ctrl+C to stop it."
+	$(DOCKER) run --rm -it --name $(DEV_BROKER_CONTAINER_NAME) -p $(DEV_BROKER_PORT):1883 eclipse-mosquitto:2 mosquitto -c /mosquitto-no-auth.conf
 
 run: frontend-build
 	$(GO) -C backend run -ldflags "$(LDFLAGS)" ./cmd/$(APP_NAME)

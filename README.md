@@ -68,6 +68,19 @@ make frontend-dev
 
 The app is served from http://localhost:8080. The Vite dev server proxies API traffic to the Go backend.
 
+Start a disposable MQTT broker for manual testing:
+
+```bash
+make dev-broker
+```
+
+Connect MQTT Shark to `mqtt://localhost:1883`. Stop the broker with `Ctrl+C`.
+To use another host port, run:
+
+```bash
+make dev-broker DEV_BROKER_PORT=1884
+```
+
 ## Build and Test
 
 Build the local binary:
