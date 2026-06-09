@@ -9,18 +9,29 @@ It ships as a single Docker image with a Go backend, a React frontend, and an em
 
 ## Demo
 
-|  |  |
-| :---: | :---: |
-| [<img src="docs/img/screenshot-1.png" alt="MQTT Shark broker connection screen" width="400">](docs/img/screenshot-1.png) | [<img src="docs/img/screenshot-2.png" alt="MQTT Shark broker content explorer" width="400">](docs/img/screenshot-2.png) |
-| Broker connection | Broker content explorer |
+|  |  |  |
+| :---: | :---: | :---: |
+| [<img src="docs/img/screenshot-1.png" alt="MQTT Shark broker connection screen" width="320">](docs/img/screenshot-1.png) | [<img src="docs/img/screenshot-2.png" alt="MQTT Shark broker content explorer" width="320">](docs/img/screenshot-2.png) | [<img src="docs/img/screenshot-3.png" alt="MQTT Shark send message interface" width="320">](docs/img/screenshot-3.png) |
+| Broker connection | Broker content explorer | Send message to a topic |
 
 ## Why MQTT Shark
 
 - Fast broker inspection when you need to see what is actually moving through MQTT.
 - Topic discovery through `#`, shown as a navigable topic tree instead of a flat stream.
-- Message history with QoS, retain flag, timestamps, topic filters, and selected-message pinning.
+- Message history with QoS, retain flag, timestamps, topic filters, selected-message pinning, and optional auto-rotation to the newest message.
 - Payload viewer with auto detection and explicit `Text`, `JSON`, `XML`, `Binary`, and `Base64` modes.
+- Publishing from the web UI for quick broker probes and manual test messages.
 - Simple deployment: one HTTP service, one Docker image, no separate frontend hosting.
+
+## Core Workflows
+
+Connect to a broker, start discovery, and choose a topic from the left panel to focus the message history. The right panel keeps the latest messages for the active topic, with payload previews constrained to the sidebar so long messages do not break the layout.
+
+Click any message to inspect its payload in the center panel. The selected message stays pinned above the right-hand history, so it remains visible even when newer messages arrive or when it falls outside the latest in-memory window.
+
+Use `Auto Rotate` in the right panel when you want MQTT Shark to keep selecting the newest message for the active topic. Turn it off when you need to hold the current payload while traffic continues.
+
+Use `Send` in the right panel to publish a manual message. MQTT Shark suggests the currently selected topic when it can, while still allowing any explicit topic, QoS, payload, and retain flag.
 
 ## Quick Start
 
@@ -110,7 +121,7 @@ Versions before `v1.0.0` do not guarantee backward compatibility between the fro
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for planned work. The near-term direction is practical MQTT exploration: smoother publishing, saved broker profiles, stronger tests around session behavior, and safer exposed deployments.
+See [ROADMAP.md](ROADMAP.md) for planned work. The near-term direction is practical MQTT exploration: saved broker profiles, stronger tests around session behavior, and safer exposed deployments.
 
 ## Security Note
 
