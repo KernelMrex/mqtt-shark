@@ -167,7 +167,7 @@ const MessagesPanel = ({
             <MessageCard
               key={message.id}
               message={message}
-              selected={selectedCopy}
+              selected={selectedCopy && !pinnedMessage}
               selectedCopy={selectedCopy}
               onSelect={onSelectMessage}
             />

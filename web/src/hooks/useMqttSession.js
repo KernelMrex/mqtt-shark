@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { initialSession, visibleMessages } from "../constants/session";
 import {
   isSelectedMessageOutside,
@@ -238,12 +238,9 @@ export const useMqttSession = () => {
     .filter((topic) => topic !== "#")
     .filter((topic) => isWildcardTopic(topic))
     .sort((left, right) => left.localeCompare(right));
-  const formattedPayload = useMemo(
-    () => state.selectedMessage
-      ? formatPayload(state.selectedMessage.payload || "", state.payloadFormat)
-      : null,
-    [state.payloadFormat, state.selectedMessage]
-  );
+  const formattedPayload = state.selectedMessage
+    ? formatPayload(state.selectedMessage.payload || "", state.payloadFormat)
+    : null;
 
   const selectTopic = (topic) => {
     dispatch({ type: "topicSelected", topic });
@@ -326,9 +323,9 @@ export const useMqttSession = () => {
     send({ type: "disconnect" });
   };
 
-  const setPayloadFormat = useCallback((payloadFormat) => {
+  const setPayloadFormat = (payloadFormat) => {
     dispatch({ type: "payloadFormatChanged", payloadFormat });
-  }, []);
+  };
 
   const setAutoRotateMessages = (enabled) => {
     dispatch({ type: "messageAutoRotateToggled", enabled });

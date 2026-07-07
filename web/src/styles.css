@@ -336,21 +336,6 @@ button:focus-visible {
   align-items: center;
 }
 
-.payload-controls {
-  display: flex;
-  align-items: end;
-  gap: 10px;
-}
-
-.payload-copy {
-  min-width: 76px;
-}
-
-.payload-copy.is-error {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
 .payload-format-control {
   display: grid;
   gap: 5px;
@@ -881,18 +866,5 @@ button:focus-visible {
 
   .messages {
     grid-template-columns: 1fr;
-  }
-
-  .payload-heading {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .payload-controls {
-    align-items: stretch;
-  }
-
-  .payload-format-control {
-    flex: 1;
   }
 }
