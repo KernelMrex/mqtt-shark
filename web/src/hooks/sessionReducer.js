@@ -277,6 +277,7 @@ export const sessionReducer = (state = initialSession, action) => {
     case "messageSelected":
       return {
         ...state,
+        autoRotateMessages: false,
         selectedMessage: action.message,
         selectedMessageId: action.message.id
       };
